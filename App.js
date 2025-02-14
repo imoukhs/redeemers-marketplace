@@ -5,22 +5,25 @@ import { CartProvider } from './src/context/CartContext';
 import { ProfileProvider } from './src/context/ProfileContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AddressProvider } from './src/context/AddressContext';
+import { WishlistProvider } from './src/context/WishlistContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
+    <ThemeProvider>
+      <AuthProvider>
         <CartProvider>
-          <ProfileProvider>
-            <AddressProvider>
-              <SafeAreaProvider>
-                <AppNavigator />
-              </SafeAreaProvider>
-            </AddressProvider>
-          </ProfileProvider>
+          <WishlistProvider>
+            <ProfileProvider>
+              <AddressProvider>
+                <SafeAreaProvider>
+                  <AppNavigator />
+                </SafeAreaProvider>
+              </AddressProvider>
+            </ProfileProvider>
+          </WishlistProvider>
         </CartProvider>
-      </ThemeProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

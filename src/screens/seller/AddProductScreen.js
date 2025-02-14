@@ -114,12 +114,12 @@ const AddProductScreen = ({ navigation, route }) => {
                   style={styles.removeImage}
                   onPress={() => setImages(images.filter((_, i) => i !== index))}
                 >
-                  <Ionicons name="close-circle" size={24} color="#FF4B4B" />
+                  <Ionicons name="close-circle" size={24} color={theme.colors.error} />
                 </TouchableOpacity>
               </View>
             ))}
             <TouchableOpacity
-              style={[styles.addImageButton, { backgroundColor: theme.colors.surface }]}
+              style={[styles.addImageButton, { backgroundColor: theme.colors.card }]}
               onPress={handleImagePick}
             >
               <Ionicons name="camera-outline" size={32} color={theme.colors.primary} />
@@ -136,7 +136,7 @@ const AddProductScreen = ({ navigation, route }) => {
             <Text style={[styles.label, { color: theme.colors.text }]}>Product Name *</Text>
             <TextInput
               style={[styles.input, { 
-                backgroundColor: theme.colors.surface,
+                backgroundColor: theme.colors.card,
                 color: theme.colors.text,
                 borderColor: theme.colors.border,
               }]}
@@ -151,7 +151,7 @@ const AddProductScreen = ({ navigation, route }) => {
             <Text style={[styles.label, { color: theme.colors.text }]}>Description</Text>
             <TextInput
               style={[styles.input, styles.textArea, { 
-                backgroundColor: theme.colors.surface,
+                backgroundColor: theme.colors.card,
                 color: theme.colors.text,
                 borderColor: theme.colors.border,
               }]}
@@ -169,7 +169,7 @@ const AddProductScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: theme.colors.text }]}>Price (₦) *</Text>
               <TextInput
                 style={[styles.input, { 
-                  backgroundColor: theme.colors.surface,
+                  backgroundColor: theme.colors.card,
                   color: theme.colors.text,
                   borderColor: theme.colors.border,
                 }]}
@@ -184,7 +184,7 @@ const AddProductScreen = ({ navigation, route }) => {
               <Text style={[styles.label, { color: theme.colors.text }]}>Stock *</Text>
               <TextInput
                 style={[styles.input, { 
-                  backgroundColor: theme.colors.surface,
+                  backgroundColor: theme.colors.card,
                   color: theme.colors.text,
                   borderColor: theme.colors.border,
                 }]}
@@ -201,8 +201,11 @@ const AddProductScreen = ({ navigation, route }) => {
             <Text style={[styles.label, { color: theme.colors.text }]}>Category</Text>
             <TouchableOpacity
               style={[styles.input, { 
-                backgroundColor: theme.colors.surface,
+                backgroundColor: theme.colors.card,
                 borderColor: theme.colors.border,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
               }]}
               onPress={() => navigation.navigate('SelectCategory')}
             >

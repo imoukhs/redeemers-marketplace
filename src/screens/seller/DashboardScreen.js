@@ -118,6 +118,27 @@ const SellerDashboardScreen = ({ navigation }) => {
   const { metrics } = profileData.seller;
   const [selectedPeriod, setSelectedPeriod] = useState('week');
 
+  // Add chart config with theme support
+  const chartConfig = {
+    backgroundColor: theme.colors.card,
+    backgroundGradientFrom: theme.colors.card,
+    backgroundGradientTo: theme.colors.card,
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(30, 144, 255, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(${theme.isDark ? '255, 255, 255' : '0, 0, 0'}, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: '6',
+      strokeWidth: '2',
+      stroke: theme.colors.primary,
+    },
+    propsForLabels: {
+      fill: theme.colors.text,
+    },
+  };
+
   const handleAddProduct = () => {
     navigation.navigate('AddProduct');
   };
@@ -256,7 +277,7 @@ const SellerDashboardScreen = ({ navigation }) => {
             height={220}
             chartConfig={chartConfig}
             bezier
-            style={styles.chart}
+            style={[styles.chart, { backgroundColor: theme.colors.card }]}
           />
         </View>
 

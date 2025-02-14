@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '../../context/ProfileContext';
+import { useTheme } from '../../context/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 
 const EditProfileScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const { profileData, loading, updateProfile, updateProfileImage } = useProfile();
   const [formData, setFormData] = useState({
     fullName: profileData.fullName || '',
@@ -90,102 +92,138 @@ const EditProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
-        <TouchableOpacity onPress={handleSave}>
-          <Text style={styles.saveButton}>Save</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Edit Profile</Text>
+        <TouchableOpacity onPress={handleSave} disabled={loading}>
+          <Text style={[styles.saveButton, { color: theme.colors.primary }]}>
+            {loading ? 'Saving...' : 'Save'}
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Profile Image */}
-        <TouchableOpacity
-          style={styles.profileImageContainer}
-          onPress={handleImagePick}
-        >
-          {profileData.profileImage ? (
-            <Image
-              source={{ uri: profileData.profileImage }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.profileImagePlaceholder}>
-              <Ionicons name="person-outline" size={40} color="#666" />
+        <View style={styles.profileImageContainer}>
+          <TouchableOpacity onPress={handleImagePick}>
+            <View style={[styles.profileImage, { backgroundColor: theme.colors.card }]}>
+              {profileData.profileImage ? (
+                <Image
+                  source={{ uri: profileData.profileImage }}
+                  style={styles.image}
+                />
+              ) : (
+                <View style={styles.profileImagePlaceholder}>
+                  <Ionicons name="person-outline" size={40} color={theme.colors.subtext} />
+                </View>
+              )}
+              {localLoading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                </View>
+              )}
             </View>
-          )}
-          <View style={styles.editIconContainer}>
-            <Ionicons name="camera" size={16} color="#fff" />
-          </View>
-        </TouchableOpacity>
+            <View style={[styles.editBadge, { backgroundColor: theme.colors.primary }]}>
+              <Ionicons name="camera" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        </View>
 
-        {/* Form */}
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>Full Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.colors.card,
+                color: theme.colors.text,
+                borderColor: theme.colors.border,
+              }]}
               value={formData.fullName}
               onChangeText={(text) => handleInputChange('fullName', text)}
               placeholder="Enter your full name"
+              placeholderTextColor={theme.colors.subtext}
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>Phone Number</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.colors.card,
+                color: theme.colors.text,
+                borderColor: theme.colors.border,
+              }]}
               value={formData.phoneNumber}
               onChangeText={(text) => handleInputChange('phoneNumber', text)}
               placeholder="Enter your phone number"
+              placeholderTextColor={theme.colors.subtext}
               keyboardType="phone-pad"
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Address</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>Address</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.colors.card,
+                color: theme.colors.text,
+                borderColor: theme.colors.border,
+              }]}
               value={formData.address}
               onChangeText={(text) => handleInputChange('address', text)}
               placeholder="Enter your address"
+              placeholderTextColor={theme.colors.subtext}
             />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>City</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>City</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: theme.colors.card,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }]}
                 value={formData.city}
                 onChangeText={(text) => handleInputChange('city', text)}
                 placeholder="City"
+                placeholderTextColor={theme.colors.subtext}
               />
             </View>
             <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>State</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>State</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { 
+                  backgroundColor: theme.colors.card,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }]}
                 value={formData.state}
                 onChangeText={(text) => handleInputChange('state', text)}
                 placeholder="State"
+                placeholderTextColor={theme.colors.subtext}
               />
             </View>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>ZIP Code</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>ZIP Code</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.colors.card,
+                color: theme.colors.text,
+                borderColor: theme.colors.border,
+              }]}
               value={formData.zipCode}
               onChangeText={(text) => handleInputChange('zipCode', text)}
-              placeholder="ZIP Code"
+              placeholder="Enter ZIP code"
+              placeholderTextColor={theme.colors.subtext}
               keyboardType="numeric"
             />
           </View>
@@ -248,7 +286,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editIconContainer: {
+  editBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
@@ -260,6 +298,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#fff',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 60,
   },
   form: {
     padding: 16,

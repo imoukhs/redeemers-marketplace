@@ -19,6 +19,8 @@ import SelectCategoryScreen from '../screens/seller/SelectCategoryScreen';
 import MyProductsScreen from '../screens/seller/MyProductsScreen';
 import OrdersManagementScreen from '../screens/seller/OrdersManagementScreen';
 import OrderDetailsScreen from '../screens/seller/OrderDetailsScreen';
+import WishlistScreen from '../screens/wishlist/WishlistScreen';
+import SearchScreen from '../screens/main/SearchScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -60,6 +62,8 @@ const AppNavigator = () => {
             <Stack.Screen name="MyProducts" component={MyProductsScreen} />
             <Stack.Screen name="SellerOrders" component={OrdersManagementScreen} />
             <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+            <Stack.Screen name="Wishlist" component={WishlistScreen} />
+            <Stack.Screen name="Search" component={SearchScreen} />
           </>
         )}
       </Stack.Navigator>

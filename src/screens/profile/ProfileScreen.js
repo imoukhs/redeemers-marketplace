@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 20,
-    paddingBottom: 24,
+    paddingBottom: 25,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -301,6 +301,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+    paddingTop: 24,
   },
   sectionTitle: {
     fontSize: 16,

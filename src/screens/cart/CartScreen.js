@@ -11,50 +11,54 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
 
-const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
+const CartItem = ({ item, onUpdateQuantity, onRemove, theme }) => {
   const { product, quantity } = item;
 
   return (
-    <View style={styles.cartItem}>
+    <View style={[styles.cartItem, { backgroundColor: theme.colors.card }]}>
       <Image
         source={require('../../../assets/dummy_600x400_000000_9abc32.png')}
         style={styles.itemImage}
         resizeMode="cover"
       />
       <View style={styles.itemInfo}>
-        <Text style={styles.itemName} numberOfLines={2}>
+        <Text style={[styles.itemName, { color: theme.colors.text }]} numberOfLines={2}>
           {product.name}
         </Text>
-        <Text style={styles.itemPrice}>₦{product.price.toLocaleString()}</Text>
+        <Text style={[styles.itemPrice, { color: theme.colors.primary }]}>
+          ₦{product.price.toLocaleString()}
+        </Text>
         
         <View style={styles.quantityContainer}>
           <TouchableOpacity
-            style={styles.quantityButton}
+            style={[styles.quantityButton, { backgroundColor: theme.colors.background }]}
             onPress={() => onUpdateQuantity(product.id, quantity - 1)}
           >
-            <Ionicons name="remove" size={20} color="#333" />
+            <Ionicons name="remove" size={20} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={styles.quantity}>{quantity}</Text>
+          <Text style={[styles.quantity, { color: theme.colors.text }]}>{quantity}</Text>
           <TouchableOpacity
-            style={styles.quantityButton}
+            style={[styles.quantityButton, { backgroundColor: theme.colors.background }]}
             onPress={() => onUpdateQuantity(product.id, quantity + 1)}
           >
-            <Ionicons name="add" size={20} color="#333" />
+            <Ionicons name="add" size={20} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
       </View>
       <TouchableOpacity
-        style={styles.removeButton}
+        style={[styles.removeButton, { backgroundColor: theme.colors.error }]}
         onPress={() => onRemove(product.id)}
       >
-        <Ionicons name="trash-outline" size={24} color="#FF4B4B" />
+        <Ionicons name="trash-outline" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
   );
 };
 
 const CartScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const {
     cartItems,
     loading,
@@ -66,19 +70,19 @@ const CartScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1E90FF" />
+      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="cart-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyText}>Your cart is empty</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
+        <Ionicons name="cart-outline" size={64} color={theme.colors.subtext} />
+        <Text style={[styles.emptyText, { color: theme.colors.text }]}>Your cart is empty</Text>
         <TouchableOpacity
-          style={styles.shopButton}
+          style={[styles.shopButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => navigation.navigate('Home')}
         >
           <Text style={styles.shopButtonText}>Start Shopping</Text>
@@ -88,11 +92,17 @@ const CartScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Shopping Cart</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Shopping Cart</Text>
         <TouchableOpacity onPress={clearCart}>
-          <Text style={styles.clearCart}>Clear Cart</Text>
+          <Text style={[styles.clearCart, { color: theme.colors.error }]}>Clear Cart</Text>
         </TouchableOpacity>
       </View>
 
@@ -103,21 +113,22 @@ const CartScreen = ({ navigation }) => {
             item={item}
             onUpdateQuantity={updateQuantity}
             onRemove={removeFromCart}
+            theme={theme}
           />
         )}
         keyExtractor={(item) => item.product.id}
         contentContainerStyle={styles.cartList}
       />
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}>
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalAmount}>
+          <Text style={[styles.totalLabel, { color: theme.colors.text }]}>Total:</Text>
+          <Text style={[styles.totalAmount, { color: theme.colors.primary }]}>
             ₦{getCartTotal().toLocaleString()}
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.checkoutButton}
+          style={[styles.checkoutButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => navigation.navigate('Checkout')}
         >
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
@@ -130,13 +141,11 @@ const CartScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -144,15 +153,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
   },
   clearCart: {
-    color: '#FF4B4B',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -161,7 +170,6 @@ const styles = StyleSheet.create({
   },
   cartItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -186,13 +194,11 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
     marginBottom: 4,
   },
   itemPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E90FF',
     marginBottom: 8,
   },
   quantityContainer: {
@@ -200,7 +206,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quantityButton: {
-    backgroundColor: '#f5f5f5',
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -214,12 +219,13 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     padding: 8,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginLeft: 8,
   },
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    backgroundColor: '#fff',
   },
   totalContainer: {
     flexDirection: 'row',
@@ -229,15 +235,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 18,
-    color: '#333',
   },
   totalAmount: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E90FF',
   },
   checkoutButton: {
-    backgroundColor: '#1E90FF',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -249,12 +252,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#666',
     marginTop: 16,
     marginBottom: 24,
   },
   shopButton: {
-    backgroundColor: '#1E90FF',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
