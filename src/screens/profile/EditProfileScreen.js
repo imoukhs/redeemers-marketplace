@@ -8,12 +8,12 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '../../context/ProfileContext';
 import { useTheme } from '../../context/ThemeContext';
+import LoadingWave from '../../components/common/LoadingWave';
 import * as ImagePicker from 'expo-image-picker';
 
 const EditProfileScreen = ({ navigation }) => {
@@ -86,7 +86,7 @@ const EditProfileScreen = ({ navigation }) => {
   if (loading || localLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E90FF" />
+        <LoadingWave color={theme.colors.primary} />
       </View>
     );
   }
@@ -124,7 +124,7 @@ const EditProfileScreen = ({ navigation }) => {
               )}
               {localLoading && (
                 <View style={styles.loadingOverlay}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <LoadingWave color={theme.colors.primary} />
                 </View>
               )}
             </View>

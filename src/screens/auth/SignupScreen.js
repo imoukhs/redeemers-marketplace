@@ -10,9 +10,10 @@ import {
   Platform,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const SignupScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -131,7 +132,9 @@ const SignupScreen = ({ navigation }) => {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#fff" />
+                  <View style={{ height: 24 }}>
+                    <LoadingWave color="#fff" />
+                  </View>
                 ) : (
                   <Text style={styles.signupButtonText}>Create Account</Text>
                 )}

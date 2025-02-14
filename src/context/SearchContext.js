@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { searchAPI } from '../services/api';
 
 const SearchContext = createContext();
 
@@ -14,10 +15,16 @@ export const useSearch = () => {
 export const SearchProvider = ({ children }) => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [trendingSearches, setTrendingSearches] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadRecentSearches();
+    loadCategories();
+    loadTrendingSearches();
   }, []);
 
   const loadRecentSearches = async () => {
@@ -28,6 +35,25 @@ export const SearchProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error loading recent searches:', error);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await searchAPI.getSearchCategories();
+      setCategories(response.categories);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setError('Failed to load categories');
+    }
+  };
+
+  const loadTrendingSearches = async () => {
+    try {
+      const response = await searchAPI.getTrendingSearches();
+      setTrendingSearches(response.trending);
+    } catch (error) {
+      console.error('Error loading trending searches:', error);
     }
   };
 
@@ -43,7 +69,7 @@ export const SearchProvider = ({ children }) => {
     if (!query.trim() || recentSearches.includes(query)) return;
 
     try {
-      const updatedSearches = [query, ...recentSearches].slice(0, 5);
+      const updatedSearches = [query, ...recentSearches].slice(0, 10);
       setRecentSearches(updatedSearches);
       await saveRecentSearches(updatedSearches);
     } catch (error) {
@@ -60,6 +86,21 @@ export const SearchProvider = ({ children }) => {
     }
   };
 
+  const getSuggestions = async (query) => {
+    if (!query.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await searchAPI.getSearchSuggestions(query);
+      setSuggestions(response.suggestions);
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
+      setSuggestions([]);
+    }
+  };
+
   const performSearch = async (query, filters = {}) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -67,70 +108,18 @@ export const SearchProvider = ({ children }) => {
     }
 
     setLoading(true);
+    setError(null);
+
     try {
-      // Mock search results - Replace with actual API call later
-      const mockProducts = [
-        {
-          id: '1',
-          name: 'iPhone 12 Pro Max',
-          price: 699000,
-          category: 'Electronics',
-          rating: 4.8,
-          reviews: 245,
-        },
-        {
-          id: '2',
-          name: 'Nike Air Max 270',
-          price: 129000,
-          category: 'Fashion',
-          rating: 4.5,
-          reviews: 189,
-        },
-        {
-          id: '3',
-          name: 'Sony WH-1000XM4',
-          price: 199000,
-          category: 'Electronics',
-          rating: 4.9,
-          reviews: 320,
-        },
-      ];
-
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Filter products based on search query and filters
-      let results = mockProducts.filter(product => {
-        const matchesQuery = product.name.toLowerCase().includes(query.toLowerCase());
-        const matchesCategory = !filters.category || product.category === filters.category;
-        const matchesMinPrice = !filters.minPrice || product.price >= parseFloat(filters.minPrice);
-        const matchesMaxPrice = !filters.maxPrice || product.price <= parseFloat(filters.maxPrice);
-        
-        return matchesQuery && matchesCategory && matchesMinPrice && matchesMaxPrice;
-      });
-
-      // Apply sorting
-      if (filters.sortBy) {
-        results = results.sort((a, b) => {
-          switch (filters.sortBy) {
-            case 'price_low':
-              return a.price - b.price;
-            case 'price_high':
-              return b.price - a.price;
-            case 'rating':
-              return b.rating - a.rating;
-            default:
-              return 0;
-          }
-        });
-      }
-
-      setSearchResults(results);
+      const response = await searchAPI.searchProducts(query, filters);
+      setSearchResults(response.products);
+      
       if (query.trim()) {
         await addRecentSearch(query);
       }
     } catch (error) {
       console.error('Search error:', error);
+      setError('Failed to perform search. Please try again.');
       setSearchResults([]);
     } finally {
       setLoading(false);
@@ -142,9 +131,14 @@ export const SearchProvider = ({ children }) => {
       value={{
         recentSearches,
         searchResults,
+        suggestions,
+        categories,
+        trendingSearches,
         loading,
+        error,
         performSearch,
         clearRecentSearches,
+        getSuggestions,
       }}
     >
       {children}

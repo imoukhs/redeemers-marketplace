@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
   SafeAreaView,
   Dimensions,
   FlatList,
@@ -13,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { LineChart } from 'react-native-chart-kit';
 import { useProfile } from '../../context/ProfileContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const { width } = Dimensions.get('window');
 
@@ -99,45 +101,108 @@ const chartConfig = {
   },
 };
 
-const MetricCard = ({ title, value, icon, color }) => {
-  const { theme } = useTheme();
-  return (
-    <View style={[styles.metricCard, { backgroundColor: theme.colors.card }]}>
-      <View style={[styles.metricIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <Text style={[styles.metricValue, { color: theme.colors.text }]}>{value}</Text>
-      <Text style={[styles.metricTitle, { color: theme.colors.subtext }]}>{title}</Text>
+const MetricCard = ({ title, value, icon, color, theme }) => (
+  <View
+    style={[
+      styles.metricCard,
+      {
+        backgroundColor: theme.colors.surface,
+        borderColor: theme.colors.border,
+      },
+    ]}
+  >
+    <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+      <Ionicons name={icon} size={24} color={color} />
     </View>
-  );
-};
+    <Text style={[styles.metricValue, { color: theme.colors.text }]}>
+      {value}
+    </Text>
+    <Text style={[styles.metricTitle, { color: theme.colors.subtext }]}>
+      {title}
+    </Text>
+  </View>
+);
+
+const QuickAction = ({ title, icon, onPress, theme }) => (
+  <TouchableOpacity
+    style={[
+      styles.quickAction,
+      {
+        backgroundColor: theme.colors.surface,
+        borderColor: theme.colors.border,
+      },
+    ]}
+    onPress={onPress}
+  >
+    <Ionicons name={icon} size={24} color={theme.colors.primary} />
+    <Text style={[styles.quickActionText, { color: theme.colors.text }]}>
+      {title}
+    </Text>
+    <Ionicons
+      name="chevron-forward"
+      size={20}
+      color={theme.colors.subtext}
+      style={styles.chevron}
+    />
+  </TouchableOpacity>
+);
 
 const SellerDashboardScreen = ({ navigation }) => {
-  const { profileData } = useProfile();
+  const { profileData, fetchSellerMetrics } = useProfile();
   const { theme } = useTheme();
   const { metrics } = profileData.seller;
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Add chart config with theme support
-  const chartConfig = {
-    backgroundColor: theme.colors.card,
-    backgroundGradientFrom: theme.colors.card,
-    backgroundGradientTo: theme.colors.card,
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(30, 144, 255, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(${theme.isDark ? '255, 255, 255' : '0, 0, 0'}, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '6',
-      strokeWidth: '2',
-      stroke: theme.colors.primary,
-    },
-    propsForLabels: {
-      fill: theme.colors.text,
-    },
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      await fetchSellerMetrics();
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboardData();
+    setRefreshing(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <LoadingWave color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  if (!profileData.seller.isVerified) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+            Seller Dashboard
+          </Text>
+        </View>
+        <View style={styles.verificationContainer}>
+          <Ionicons name="alert-circle" size={48} color={theme.colors.warning} />
+          <Text style={[styles.verificationTitle, { color: theme.colors.text }]}>
+            Account Under Review
+          </Text>
+          <Text style={[styles.verificationText, { color: theme.colors.subtext }]}>
+            Your seller account is currently under review. We'll notify you once your account is verified.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleAddProduct = () => {
     navigation.navigate('AddProduct');
@@ -208,7 +273,17 @@ const SellerDashboardScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+          />
+        }
+      >
         {/* Store Info */}
         <View style={styles.storeSection}>
           <Text style={[styles.storeName, { color: theme.colors.text }]}>
@@ -220,52 +295,69 @@ const SellerDashboardScreen = ({ navigation }) => {
         </View>
 
         {/* Metrics */}
-        <View style={styles.metricsGrid}>
+        <View style={styles.metricsContainer}>
           <MetricCard
             title="Total Sales"
-            value={`₦${metrics.totalSales.toLocaleString()}`}
-            icon="cash-outline"
+            value={`₦${profileData.seller.metrics?.totalSales?.toLocaleString() || '0'}`}
+            icon="cash"
             color="#4CAF50"
+            theme={theme}
           />
           <MetricCard
             title="Total Orders"
-            value={metrics.totalOrders}
-            icon="cart-outline"
+            value={profileData.seller.metrics?.totalOrders || '0'}
+            icon="cart"
             color="#2196F3"
+            theme={theme}
           />
           <MetricCard
             title="Pending Orders"
-            value={metrics.pendingOrders}
-            icon="time-outline"
-            color="#FFC107"
+            value={profileData.seller.metrics?.pendingOrders || '0'}
+            icon="time"
+            color="#FF9800"
+            theme={theme}
           />
           <MetricCard
-            title="Products"
-            value={metrics.totalProducts}
-            icon="cube-outline"
+            title="Total Products"
+            value={profileData.seller.metrics?.totalProducts || '0'}
+            icon="cube"
             color="#9C27B0"
+            theme={theme}
           />
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.actionsSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-              onPress={() => navigation.navigate('AddProduct')}
-            >
-              <Ionicons name="add-circle-outline" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>Add Product</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-              onPress={() => navigation.navigate('SellerOrders')}
-            >
-              <Ionicons name="list-outline" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>View Orders</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.sectionTitle}>
+          <Text style={[styles.sectionText, { color: theme.colors.text }]}>
+            Quick Actions
+          </Text>
+        </View>
+
+        <View style={styles.quickActionsContainer}>
+          <QuickAction
+            title="Add New Product"
+            icon="add-circle"
+            onPress={() => navigation.navigate('AddProduct')}
+            theme={theme}
+          />
+          <QuickAction
+            title="Manage Products"
+            icon="cube"
+            onPress={() => navigation.navigate('MyProducts')}
+            theme={theme}
+          />
+          <QuickAction
+            title="Manage Orders"
+            icon="list"
+            onPress={() => navigation.navigate('SellerOrders')}
+            theme={theme}
+          />
+          <QuickAction
+            title="View Analytics"
+            icon="bar-chart"
+            onPress={() => {}}
+            theme={theme}
+          />
         </View>
 
         {/* Revenue Chart */}
@@ -340,6 +432,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -369,68 +466,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 16,
   },
-  metricsGrid: {
+  metricsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 8,
-  },
-  metricCard: {
-    width: (width - 48) / 2,
-    margin: 8,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  metricIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  metricTitle: {
-    fontSize: 12,
-  },
-  actionsSection: {
-    padding: 16,
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
     marginBottom: 16,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginHorizontal: 8,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 14,
+  sectionText: {
+    fontSize: 18,
     fontWeight: '600',
-    marginLeft: 8,
+  },
+  quickActionsContainer: {
+    marginBottom: 24,
   },
   chartCard: {
     margin: 16,
@@ -549,6 +599,23 @@ const styles = StyleSheet.create({
   stockText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  verificationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  verificationTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  verificationText: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });
 

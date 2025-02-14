@@ -8,7 +8,6 @@ import {
   Image,
   Switch,
   Alert,
-  ActivityIndicator,
   SafeAreaView,
   Dimensions,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '../../context/ProfileContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const { width } = Dimensions.get('window');
 
@@ -78,7 +78,7 @@ const ProfileScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <LoadingWave color={theme.colors.primary} />
       </View>
     );
   }
@@ -180,15 +180,7 @@ const ProfileScreen = ({ navigation }) => {
             <MenuItem
               icon="storefront-outline"
               title="Seller Mode"
-              value={
-                <Switch
-                  value={profileData.preferences?.sellerMode}
-                  onValueChange={() => updatePreference('sellerMode', !profileData.preferences?.sellerMode)}
-                  trackColor={{ false: '#767577', true: theme.colors.primary + '50' }}
-                  thumbColor={profileData.preferences?.sellerMode ? theme.colors.primary : '#f4f3f4'}
-                />
-              }
-              showArrow={false}
+              onPress={() => navigation.navigate('SellerOnboarding')}
             />
             {profileData.preferences?.sellerMode && (
               <>

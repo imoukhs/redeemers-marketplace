@@ -9,9 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -84,7 +85,9 @@ const LoginScreen = ({ navigation }) => {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" />
+                <View style={{ height: 24 }}>
+                  <LoadingWave color="#fff" />
+                </View>
               ) : (
                 <Text style={styles.loginButtonText}>Login</Text>
               )}

@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Image,
   SafeAreaView,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const CartItem = ({ item, onUpdateQuantity, onRemove, theme }) => {
   const { product, quantity } = item;
@@ -71,7 +71,7 @@ const CartScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <LoadingWave color={theme.colors.primary} />
       </View>
     );
   }

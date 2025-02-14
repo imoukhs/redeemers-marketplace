@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import Slider from '@react-native-community/slider';
 import { useTheme } from '../../context/ThemeContext';
 import { useSearch } from '../../context/SearchContext';
 import ProductCard from '../../components/products/ProductCard';
+import LoadingWave from '../../components/common/LoadingWave';
 
 // Mock categories - Replace with API data later
 const mockCategories = [
@@ -46,7 +47,18 @@ const mockSuggestions = [
 
 const SearchScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const { recentSearches, searchResults, loading, performSearch, clearRecentSearches } = useSearch();
+  const {
+    recentSearches,
+    searchResults,
+    suggestions,
+    categories,
+    trendingSearches,
+    loading,
+    error,
+    performSearch,
+    clearRecentSearches,
+    getSuggestions,
+  } = useSearch();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -55,25 +67,24 @@ const SearchScreen = ({ navigation }) => {
     maxPrice: '',
     sortBy: 'relevance',
   });
-  const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Handle search suggestions
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      // Filter suggestions based on input
-      const filteredSuggestions = mockSuggestions.filter(suggestion =>
-        suggestion.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSuggestions(filteredSuggestions);
-      setShowSuggestions(true);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
+    const debounceTimer = setTimeout(() => {
+      if (searchQuery.trim().length > 0) {
+        getSuggestions(searchQuery);
+        setShowSuggestions(true);
+      } else {
+        setShowSuggestions(false);
+      }
+    }, 300); // Debounce delay
+
+    return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
   const handleSearch = () => {
+    setShowSuggestions(false);
     performSearch(searchQuery, filters);
   };
 
@@ -279,12 +290,18 @@ const SearchScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {error && (
+        <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '20' }]}>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+        </View>
+      )}
+
       {renderSuggestions()}
 
       <View style={styles.contentContainer}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <LoadingWave color={theme.colors.primary} />
           </View>
         ) : searchResults.length > 0 ? (
           <FlatList
@@ -293,6 +310,8 @@ const SearchScreen = ({ navigation }) => {
             keyExtractor={(item) => item.id}
             numColumns={2}
             contentContainerStyle={styles.resultsContainer}
+            onRefresh={handleSearch}
+            refreshing={loading}
           />
         ) : (
           <ScrollView style={styles.content}>
@@ -327,20 +346,48 @@ const SearchScreen = ({ navigation }) => {
               </View>
             )}
 
-            {/* Popular Categories */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                Popular Categories
-              </Text>
-              <FlatList
-                data={mockCategories}
-                renderItem={renderCategoryItem}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesList}
-              />
-            </View>
+            {/* Trending Searches */}
+            {trendingSearches.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                  Trending Searches
+                </Text>
+                <View style={styles.trendingSearches}>
+                  {trendingSearches.map((search, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.trendingSearch, { backgroundColor: theme.colors.surface }]}
+                      onPress={() => {
+                        setSearchQuery(search);
+                        performSearch(search, filters);
+                      }}
+                    >
+                      <Ionicons name="trending-up" size={16} color={theme.colors.primary} />
+                      <Text style={[styles.trendingSearchText, { color: theme.colors.text }]}>
+                        {search}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Categories */}
+            {categories.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                  Browse Categories
+                </Text>
+                <FlatList
+                  data={categories}
+                  renderItem={renderCategoryItem}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesList}
+                />
+              </View>
+            )}
           </ScrollView>
         )}
       </View>
@@ -582,6 +629,33 @@ const styles = StyleSheet.create({
   },
   suggestionIcon: {
     marginLeft: 2,
+  },
+  errorContainer: {
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  trendingSearches: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    padding: 8,
+  },
+  trendingSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  trendingSearchText: {
+    fontSize: 14,
   },
 });
 

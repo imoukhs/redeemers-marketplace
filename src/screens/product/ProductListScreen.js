@@ -6,11 +6,11 @@ import {
   FlatList,
   SafeAreaView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard from '../../components/products/ProductCard';
 import { useTheme } from '../../context/ThemeContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 // Mock data - Replace with API call later
 const mockProducts = [
@@ -71,7 +71,7 @@ const ProductListScreen = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <LoadingWave color={theme.colors.primary} />
       </View>
     );
   }
