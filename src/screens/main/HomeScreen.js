@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoriesList: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
   },
   categoryCard: {
     alignItems: 'center',

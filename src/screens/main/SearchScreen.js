@@ -4,128 +4,103 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  SafeAreaView,
   TouchableOpacity,
-  ScrollView,
   FlatList,
   Modal,
-  Dimensions,
+  ScrollView,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
-import ProductCard from '../../components/products/ProductCard';
 import Slider from '@react-native-community/slider';
+import { useTheme } from '../../context/ThemeContext';
+import { useSearch } from '../../context/SearchContext';
+import ProductCard from '../../components/products/ProductCard';
 
-const { width } = Dimensions.get('window');
-
-// Mock data - Replace with API calls later
-const categories = [
-  { id: '1', name: 'All Categories' },
-  { id: '2', name: 'Electronics' },
-  { id: '3', name: 'Fashion' },
-  { id: '4', name: 'Home' },
-  { id: '5', name: 'Beauty' },
-  { id: '6', name: 'Sports' },
+// Mock categories - Replace with API data later
+const mockCategories = [
+  { id: '1', name: 'Electronics', icon: 'phone-portrait-outline' },
+  { id: '2', name: 'Fashion', icon: 'shirt-outline' },
+  { id: '3', name: 'Home', icon: 'home-outline' },
+  { id: '4', name: 'Sports', icon: 'football-outline' },
 ];
 
 const sortOptions = [
   { id: '1', name: 'Relevance', value: 'relevance' },
-  { id: '2', name: 'Price: Low to High', value: 'price_asc' },
-  { id: '3', name: 'Price: High to Low', value: 'price_desc' },
+  { id: '2', name: 'Price: Low to High', value: 'price_low' },
+  { id: '3', name: 'Price: High to Low', value: 'price_high' },
   { id: '4', name: 'Rating', value: 'rating' },
-  { id: '5', name: 'Newest', value: 'newest' },
+];
+
+// Mock suggestions data - Replace with API data later
+const mockSuggestions = [
+  'iPhone 12 Pro',
+  'iPhone 13',
+  'iPhone case',
+  'Samsung Galaxy',
+  'Wireless earbuds',
+  'Smart watch',
+  'Laptop',
+  'Gaming console',
 ];
 
 const SearchScreen = ({ navigation }) => {
   const { theme } = useTheme();
+  const { recentSearches, searchResults, loading, performSearch, clearRecentSearches } = useSearch();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 1000000]);
-  const [minRating, setMinRating] = useState(0);
-  const [selectedSort, setSelectedSort] = useState(sortOptions[0]);
-  const [searchResults, setSearchResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    category: '',
+    minPrice: '',
+    maxPrice: '',
+    sortBy: 'relevance',
+  });
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Mock search results - Replace with API call
-  const mockProducts = [
-    {
-      id: '1',
-      name: 'iPhone 12 Pro Max',
-      price: 699000,
-      category: 'Electronics',
-      rating: 4.8,
-      reviews: 245,
-    },
-    {
-      id: '2',
-      name: 'Nike Air Max 270',
-      price: 129000,
-      category: 'Fashion',
-      rating: 4.5,
-      reviews: 189,
-    },
-    // Add more mock products...
-  ];
-
+  // Handle search suggestions
   useEffect(() => {
-    // Simulate API call when search parameters change
-    const performSearch = async () => {
-      setIsLoading(true);
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filter products based on search criteria
-      const filteredProducts = mockProducts.filter(product => {
-        const matchesSearch = searchQuery === '' || 
-          product.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = selectedCategory.name === 'All Categories' || 
-          product.category === selectedCategory.name;
-        const matchesPrice = product.price >= priceRange[0] && 
-          product.price <= priceRange[1];
-        const matchesRating = product.rating >= minRating;
-        
-        return matchesSearch && matchesCategory && matchesPrice && matchesRating;
-      });
+    if (searchQuery.trim().length > 0) {
+      // Filter suggestions based on input
+      const filteredSuggestions = mockSuggestions.filter(suggestion =>
+        suggestion.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setSuggestions(filteredSuggestions);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [searchQuery]);
 
-      // Sort products
-      const sortedProducts = [...filteredProducts].sort((a, b) => {
-        switch (selectedSort.value) {
-          case 'price_asc':
-            return a.price - b.price;
-          case 'price_desc':
-            return b.price - a.price;
-          case 'rating':
-            return b.rating - a.rating;
-          case 'newest':
-            return b.id - a.id;
-          default:
-            return 0;
-        }
-      });
+  const handleSearch = () => {
+    performSearch(searchQuery, filters);
+  };
 
-      setSearchResults(sortedProducts);
-      setIsLoading(false);
-    };
-
-    performSearch();
-  }, [searchQuery, selectedCategory, priceRange, minRating, selectedSort]);
+  const clearSearch = () => {
+    setSearchQuery('');
+    performSearch('');
+  };
 
   const handleProductPress = (product) => {
     navigation.navigate('ProductDetail', { product });
   };
 
+  const handleSuggestionPress = (suggestion) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    performSearch(suggestion, filters);
+  };
+
   const renderCategoryItem = ({ item }) => (
     <TouchableOpacity
-      style={[
-        styles.categoryItem,
-        { backgroundColor: theme.colors.surface },
-        selectedCategory.id === item.id && { borderColor: theme.colors.primary }
-      ]}
-      onPress={() => setSelectedCategory(item)}
+      style={[styles.categoryItem, { backgroundColor: theme.colors.surface }]}
+      onPress={() => {
+        setFilters({ ...filters, category: item.name });
+        handleSearch();
+      }}
     >
-      <View style={[styles.categoryIcon, { backgroundColor: theme.colors.primary + '10' }]}>
+      <View style={[styles.categoryIcon, { backgroundColor: theme.colors.primary + '20' }]}>
         <Ionicons name={item.icon} size={24} color={theme.colors.primary} />
       </View>
       <Text style={[styles.categoryName, { color: theme.colors.text }]}>{item.name}</Text>
@@ -136,10 +111,66 @@ const SearchScreen = ({ navigation }) => {
     <ProductCard
       product={item}
       onPress={() => handleProductPress(item)}
-      style={[styles.productCard, { backgroundColor: theme.colors.surface }]}
+      style={styles.productCard}
       theme={theme}
     />
   );
+
+  const renderSuggestions = () => {
+    if (!showSuggestions || searchQuery.length === 0) return null;
+
+    const filteredSuggestions = suggestions.filter(suggestion =>
+      suggestion.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (filteredSuggestions.length === 0) return null;
+
+    return (
+      <View style={[styles.suggestionsContainer, { backgroundColor: theme.colors.card }]}>
+        <ScrollView style={styles.suggestionsScroll} keyboardShouldPersistTaps="handled">
+          {filteredSuggestions.map((suggestion, index) => {
+            const matchStart = suggestion.toLowerCase().indexOf(searchQuery.toLowerCase());
+            const matchEnd = matchStart + searchQuery.length;
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.suggestionItem,
+                  index === filteredSuggestions.length - 1 && styles.lastSuggestionItem,
+                  { borderBottomColor: theme.colors.border }
+                ]}
+                onPress={() => handleSuggestionPress(suggestion)}
+              >
+                <View style={styles.suggestionContent}>
+                  <View style={styles.suggestionTextContainer}>
+                    <Text style={[styles.suggestionText, { color: theme.colors.text }]}>
+                      {suggestion.slice(0, matchStart)}
+                      <Text style={[styles.highlightedText, { color: theme.colors.primary }]}>
+                        {suggestion.slice(matchStart, matchEnd)}
+                      </Text>
+                      {suggestion.slice(matchEnd)}
+                    </Text>
+                    <Text style={[styles.suggestionCategory, { color: theme.colors.subtext }]}>
+                      in Electronics
+                    </Text>
+                  </View>
+                  <View style={styles.suggestionIconContainer}>
+                    <Ionicons 
+                      name="arrow-forward" 
+                      size={18} 
+                      color={theme.colors.primary} 
+                      style={styles.suggestionIcon}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const FilterModal = () => (
     <Modal
@@ -163,49 +194,21 @@ const SearchScreen = ({ navigation }) => {
               <Text style={[styles.filterTitle, { color: theme.colors.text }]}>Price Range</Text>
               <View style={styles.priceRangeContainer}>
                 <Text style={[styles.priceText, { color: theme.colors.text }]}>
-                  ₦{priceRange[0].toLocaleString()}
+                  ₦{filters.minPrice}
                 </Text>
                 <Text style={[styles.priceText, { color: theme.colors.text }]}>
-                  ₦{priceRange[1].toLocaleString()}
+                  ₦{filters.maxPrice}
                 </Text>
               </View>
               <Slider
                 style={styles.slider}
                 minimumValue={0}
                 maximumValue={1000000}
-                value={priceRange[1]}
-                onValueChange={value => setPriceRange([priceRange[0], value])}
+                value={filters.maxPrice}
+                onValueChange={value => setFilters({ ...filters, maxPrice: value })}
                 minimumTrackTintColor={theme.colors.primary}
                 maximumTrackTintColor={theme.colors.border}
               />
-            </View>
-
-            {/* Rating Filter */}
-            <View style={styles.filterSection}>
-              <Text style={[styles.filterTitle, { color: theme.colors.text }]}>Minimum Rating</Text>
-              <View style={styles.ratingContainer}>
-                {[0, 1, 2, 3, 4, 5].map((rating) => (
-                  <TouchableOpacity
-                    key={rating}
-                    style={[
-                      styles.ratingButton,
-                      minRating === rating && styles.selectedRating,
-                      { backgroundColor: theme.colors.surface }
-                    ]}
-                    onPress={() => setMinRating(rating)}
-                  >
-                    <Text
-                      style={[
-                        styles.ratingButtonText,
-                        minRating === rating && styles.selectedRatingText,
-                        { color: minRating === rating ? theme.colors.primary : theme.colors.text }
-                      ]}
-                    >
-                      {rating === 0 ? 'All' : `${rating}+`}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
             </View>
 
             {/* Sort Options */}
@@ -216,16 +219,16 @@ const SearchScreen = ({ navigation }) => {
                   key={option.id}
                   style={[
                     styles.sortOption,
-                    selectedSort.id === option.id && styles.selectedSortOption,
+                    filters.sortBy === option.value && styles.selectedSortOption,
                     { backgroundColor: theme.colors.surface }
                   ]}
-                  onPress={() => setSelectedSort(option)}
+                  onPress={() => setFilters({ ...filters, sortBy: option.value })}
                 >
                   <Text
                     style={[
                       styles.sortOptionText,
-                      selectedSort.id === option.id && styles.selectedSortOptionText,
-                      { color: selectedSort.id === option.id ? theme.colors.primary : theme.colors.text }
+                      filters.sortBy === option.value && styles.selectedSortOptionText,
+                      { color: filters.sortBy === option.value ? theme.colors.primary : theme.colors.text }
                     ]}
                   >
                     {option.name}
@@ -248,58 +251,99 @@ const SearchScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.searchHeader, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search-outline" size={20} color={theme.colors.subtext} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Search products..."
-            placeholderTextColor={theme.colors.subtext}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+      <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <View style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}>
+            <Ionicons name="search-outline" size={20} color={theme.colors.subtext} />
+            <TextInput
+              style={[styles.searchInput, { color: theme.colors.text }]}
+              placeholder="Search products..."
+              placeholderTextColor={theme.colors.subtext}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {searchQuery ? (
+              <TouchableOpacity onPress={clearSearch}>
+                <Ionicons name="close-circle" size={20} color={theme.colors.subtext} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[styles.filterButton, { backgroundColor: theme.colors.surface }]}
+            onPress={() => setShowFilters(true)}
+          >
+            <Ionicons name="options-outline" size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {renderSuggestions()}
+
+      <View style={styles.contentContainer}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : searchResults.length > 0 ? (
+          <FlatList
+            data={searchResults}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.resultsContainer}
           />
-        </View>
-        <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.colors.primary + '10' }]}
-          onPress={() => setShowFilters(true)}
-        >
-          <Ionicons name="options-outline" size={24} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
+        ) : (
+          <ScrollView style={styles.content}>
+            {/* Recent Searches */}
+            {recentSearches.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                    Recent Searches
+                  </Text>
+                  <TouchableOpacity onPress={clearRecentSearches}>
+                    <Text style={[styles.clearText, { color: theme.colors.primary }]}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.recentSearches}>
+                  {recentSearches.map((search, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.recentSearch, { backgroundColor: theme.colors.surface }]}
+                      onPress={() => {
+                        setSearchQuery(search);
+                        performSearch(search, filters);
+                      }}
+                    >
+                      <Ionicons name="time-outline" size={16} color={theme.colors.subtext} />
+                      <Text style={[styles.recentSearchText, { color: theme.colors.text }]}>
+                        {search}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
-      <View style={styles.categoriesSection}>
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.categoriesList, { backgroundColor: theme.colors.background }]}
-        />
+            {/* Popular Categories */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                Popular Categories
+              </Text>
+              <FlatList
+                data={mockCategories}
+                renderItem={renderCategoryItem}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesList}
+              />
+            </View>
+          </ScrollView>
+        )}
       </View>
-
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      ) : searchResults.length > 0 ? (
-        <FlatList
-          data={searchResults}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={[styles.productList, { backgroundColor: theme.colors.background }]}
-          columnWrapperStyle={styles.productRow}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="search-outline" size={64} color={theme.colors.subtext} />
-          <Text style={[styles.emptyText, { color: theme.colors.subtext }]}>
-            No products found
-          </Text>
-        </View>
-      )}
 
       <FilterModal />
     </SafeAreaView>
@@ -310,24 +354,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  searchHeader: {
+  header: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+    zIndex: 2,
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
-  searchInputContainer: {
+  searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    height: 50,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
+    height: 48,
+    paddingVertical: 8,
   },
   filterButton: {
     width: 40,
@@ -336,8 +388,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  categoriesSection: {
-    marginVertical: 12,
+  resultsContainer: {
+    padding: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
+    flex: 1,
+    zIndex: 1,
+  },
+  content: {
+    padding: 16,
+  },
+  section: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  clearText: {
+    fontSize: 14,
+  },
+  recentSearches: {
+    marginBottom: 16,
+  },
+  recentSearch: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  recentSearchText: {
+    fontSize: 14,
   },
   categoriesList: {
     paddingHorizontal: 8,
@@ -362,30 +453,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  productList: {
-    padding: 8,
-  },
-  productRow: {
-    justifyContent: 'space-between',
-  },
   productCard: {
     width: '48%',
     marginBottom: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 64,
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 16,
   },
   modalContainer: {
     flex: 1,
@@ -429,26 +499,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 40,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  ratingButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    margin: 4,
-  },
-  selectedRating: {
-    backgroundColor: '#E3F2FD',
-  },
-  ratingButtonText: {
-    fontSize: 14,
-  },
-  selectedRatingText: {
-    fontWeight: '600',
-  },
   sortOption: {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -474,6 +524,64 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 70,
+    left: 16,
+    right: 16,
+    maxHeight: 300,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  suggestionsScroll: {
+    borderRadius: 12,
+  },
+  suggestionItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  lastSuggestionItem: {
+    borderBottomWidth: 0,
+  },
+  suggestionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  suggestionTextContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  suggestionText: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  highlightedText: {
+    fontWeight: '600',
+  },
+  suggestionCategory: {
+    fontSize: 12,
+  },
+  suggestionIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(30, 144, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  suggestionIcon: {
+    marginLeft: 2,
   },
 });
 

@@ -6,6 +6,7 @@ import { ProfileProvider } from './src/context/ProfileContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AddressProvider } from './src/context/AddressContext';
 import { WishlistProvider } from './src/context/WishlistContext';
+import { SearchProvider } from './src/context/SearchContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -16,9 +17,11 @@ export default function App() {
           <WishlistProvider>
             <ProfileProvider>
               <AddressProvider>
-                <SafeAreaProvider>
-                  <AppNavigator />
-                </SafeAreaProvider>
+                <SearchProvider>
+                  <SafeAreaProvider>
+                    <AppNavigator />
+                  </SafeAreaProvider>
+                </SearchProvider>
               </AddressProvider>
             </ProfileProvider>
           </WishlistProvider>
