@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sellerAPI } from '../services/api/seller';
+import { useSubscription } from './SubscriptionContext';
 
 const SellerContext = createContext();
 
@@ -18,12 +19,15 @@ export const SellerProvider = ({ children }) => {
   const [sellerData, setSellerData] = useState(null);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [metrics, setMetrics] = useState({
     totalSales: 0,
     totalOrders: 0,
     pendingOrders: 0,
     totalProducts: 0,
   });
+
+  const { subscription } = useSubscription();
 
   useEffect(() => {
     loadSellerData();
@@ -35,12 +39,26 @@ export const SellerProvider = ({ children }) => {
       setError(null);
       const profile = await sellerAPI.getProfile();
       setSellerData(profile);
-      await fetchSellerMetrics();
+      await Promise.all([
+        fetchSellerMetrics(),
+        fetchPromotions(),
+      ]);
     } catch (error) {
       console.error('Error loading seller data:', error);
       setError(error.message || 'Failed to load seller data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkSubscriptionLimit = (action) => {
+    if (!subscription) {
+      throw new Error('Active subscription required');
+    }
+
+    const isBasicPlan = subscription.planId === 'basic';
+    if (isBasicPlan && action === 'addProduct' && products.length >= 50) {
+      throw new Error('Basic plan limited to 50 products. Please upgrade to Premium.');
     }
   };
 
@@ -73,6 +91,7 @@ export const SellerProvider = ({ children }) => {
   const createProduct = async (productData) => {
     try {
       setError(null);
+      checkSubscriptionLimit('addProduct');
       const response = await sellerAPI.createProduct(productData);
       setProducts(prevProducts => [...prevProducts, response]);
       return response;
@@ -158,26 +177,164 @@ export const SellerProvider = ({ children }) => {
     }
   };
 
-  return (
-    <SellerContext.Provider
-      value={{
-        loading,
-        error,
-        sellerData,
-        products,
-        orders,
-        metrics,
-        updateSellerProfile,
-        fetchSellerMetrics,
-        fetchProducts,
-        createProduct,
-        updateProduct,
-        deleteProduct,
-        fetchOrders,
-        updateOrderStatus,
-      }}
-    >
-      {children}
-    </SellerContext.Provider>
-  );
+  const getSubscriptionFeatures = () => {
+    if (!subscription) return null;
+
+    const isBasicPlan = subscription.planId === 'basic';
+    return {
+      maxProducts: isBasicPlan ? 50 : Infinity,
+      hasAnalytics: !isBasicPlan,
+      hasPrioritySupport: !isBasicPlan,
+      hasPromotionalTools: !isBasicPlan,
+      hasReducedFees: !isBasicPlan,
+    };
+  };
+
+  const updateInventory = async (productId, newQuantity) => {
+    try {
+      // TODO: Replace with actual API call
+      // await api.put(`/products/${productId}/inventory`, { quantity: newQuantity });
+      
+      // For now, we'll just simulate the API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      throw error;
+    }
+  };
+
+  const getProducts = async () => {
+    try {
+      // TODO: Replace with actual API call
+      // const response = await api.get('/seller/products');
+      // return response.data;
+      
+      // For now, return mock data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return [
+        {
+          id: 1,
+          name: 'Premium T-Shirt',
+          category: 'Clothing',
+          stock: 15,
+          price: 2999,
+          image: 'https://example.com/tshirt.jpg'
+        },
+        {
+          id: 2,
+          name: 'Designer Jeans',
+          category: 'Clothing',
+          stock: 3,
+          price: 7999,
+          image: 'https://example.com/jeans.jpg'
+        },
+        {
+          id: 3,
+          name: 'Running Shoes',
+          category: 'Footwear',
+          stock: 0,
+          price: 12999,
+          image: 'https://example.com/shoes.jpg'
+        },
+        {
+          id: 4,
+          name: 'Smart Watch',
+          category: 'Electronics',
+          stock: 8,
+          price: 24999,
+          image: 'https://example.com/watch.jpg'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      throw error;
+    }
+  };
+
+  const fetchPromotions = async () => {
+    try {
+      setError(null);
+      const response = await sellerAPI.getPromotions();
+      setPromotions(response);
+      return response;
+    } catch (error) {
+      console.error('Error fetching promotions:', error);
+      setError(error.message || 'Failed to fetch promotions');
+      throw error;
+    }
+  };
+
+  const createPromotion = async (promotionData) => {
+    try {
+      setError(null);
+      const response = await sellerAPI.createPromotion(promotionData);
+      setPromotions(prevPromotions => [...prevPromotions, response]);
+      return response;
+    } catch (error) {
+      console.error('Error creating promotion:', error);
+      setError(error.message || 'Failed to create promotion');
+      throw error;
+    }
+  };
+
+  const updatePromotion = async (promotionId, promotionData) => {
+    try {
+      setError(null);
+      const response = await sellerAPI.updatePromotion(promotionId, promotionData);
+      setPromotions(prevPromotions =>
+        prevPromotions.map(promotion =>
+          promotion.id === promotionId ? response : promotion
+        )
+      );
+      return response;
+    } catch (error) {
+      console.error('Error updating promotion:', error);
+      setError(error.message || 'Failed to update promotion');
+      throw error;
+    }
+  };
+
+  const deletePromotion = async (promotionId) => {
+    try {
+      setError(null);
+      await sellerAPI.deletePromotion(promotionId);
+      setPromotions(prevPromotions =>
+        prevPromotions.filter(promotion => promotion.id !== promotionId)
+      );
+      return true;
+    } catch (error) {
+      console.error('Error deleting promotion:', error);
+      setError(error.message || 'Failed to delete promotion');
+      throw error;
+    }
+  };
+
+  const value = {
+    loading,
+    error,
+    sellerData,
+    products,
+    orders,
+    promotions,
+    metrics,
+    updateSellerProfile,
+    fetchSellerMetrics,
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    fetchOrders,
+    updateOrderStatus,
+    getSubscriptionFeatures,
+    updateInventory,
+    getProducts,
+    fetchPromotions,
+    createPromotion,
+    updatePromotion,
+    deletePromotion,
+  };
+
+  return <SellerContext.Provider value={value}>{children}</SellerContext.Provider>;
 }; 

@@ -17,7 +17,7 @@ import LoadingWave from '../../components/common/LoadingWave';
 import * as ImagePicker from 'expo-image-picker';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { profileData, loading, updateProfile, updateProfileImage } = useProfile();
   const [formData, setFormData] = useState({
     fullName: profileData.fullName || '',
@@ -49,6 +49,8 @@ const EditProfileScreen = ({ navigation }) => {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        presentationStyle: isDarkMode ? 'overFullScreen' : 'pageSheet',
+        backgroundColor: theme.colors.background,
       });
 
       if (!result.canceled) {

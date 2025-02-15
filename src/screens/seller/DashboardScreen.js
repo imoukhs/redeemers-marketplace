@@ -13,25 +13,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { LineChart } from 'react-native-chart-kit';
-import { useProfile } from '../../context/ProfileContext';
+import { useSeller } from '../../context/SellerContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 import LoadingWave from '../../components/common/LoadingWave';
 
 const { width } = Dimensions.get('window');
 
-// Mock data - Replace with API calls
-const metrics = {
-  totalSales: 2456789,
-  totalOrders: 189,
-  pendingOrders: 12,
-  totalProducts: 45,
-  revenue: {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [{
-      data: [20000, 45000, 28000, 80000, 99000, 43000],
-    }],
-  },
-};
-
+// Mock data for orders and products
 const recentOrders = [
   {
     id: '1',
@@ -101,56 +89,38 @@ const chartConfig = {
   },
 };
 
-const MetricCard = ({ title, value, icon, color, theme }) => (
-  <View
-    style={[
-      styles.metricCard,
-      {
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
-      },
-    ]}
-  >
-    <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-      <Ionicons name={icon} size={24} color={color} />
+const MetricCard = ({ title, value, icon, color, theme, subtitle }) => (
+  <View style={[styles.metricCard, { backgroundColor: theme.colors.surface }]}>
+    <View style={styles.metricIconContainer}>
+      <View style={[styles.metricIcon, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
     </View>
-    <Text style={[styles.metricValue, { color: theme.colors.text }]}>
-      {value}
-    </Text>
-    <Text style={[styles.metricTitle, { color: theme.colors.subtext }]}>
-      {title}
-    </Text>
+    <View style={styles.metricContent}>
+      <Text style={[styles.metricTitle, { color: theme.colors.subtext }]}>{title}</Text>
+      <Text style={[styles.metricValue, { color: theme.colors.text }]}>{value}</Text>
+      {subtitle && (
+        <Text style={[styles.metricSubtitle, { color: theme.colors.subtext }]}>{subtitle}</Text>
+      )}
+    </View>
   </View>
 );
 
-const QuickAction = ({ title, icon, onPress, theme }) => (
+const QuickAction = ({ title, icon, onPress, theme, disabled }) => (
   <TouchableOpacity
-    style={[
-      styles.quickAction,
-      {
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
-      },
-    ]}
+    style={[styles.quickAction, { backgroundColor: theme.colors.surface }]}
     onPress={onPress}
+    disabled={disabled}
   >
     <Ionicons name={icon} size={24} color={theme.colors.primary} />
-    <Text style={[styles.quickActionText, { color: theme.colors.text }]}>
-      {title}
-    </Text>
-    <Ionicons
-      name="chevron-forward"
-      size={20}
-      color={theme.colors.subtext}
-      style={styles.chevron}
-    />
+    <Text style={[styles.quickActionText, { color: theme.colors.text }]}>{title}</Text>
   </TouchableOpacity>
 );
 
 const SellerDashboardScreen = ({ navigation }) => {
-  const { profileData, fetchSellerMetrics } = useProfile();
   const { theme } = useTheme();
-  const { metrics } = profileData.seller;
+  const { sellerData, metrics, fetchSellerMetrics } = useSeller();
+  const { subscription } = useSubscription();
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -183,13 +153,20 @@ const SellerDashboardScreen = ({ navigation }) => {
     );
   }
 
-  if (!profileData.seller.isVerified) {
+  if (!sellerData || !sellerData.verified) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
             Seller Dashboard
           </Text>
+          <View style={styles.backButton} />
         </View>
         <View style={styles.verificationContainer}>
           <Ionicons name="alert-circle" size={48} color={theme.colors.warning} />
@@ -199,13 +176,25 @@ const SellerDashboardScreen = ({ navigation }) => {
           <Text style={[styles.verificationText, { color: theme.colors.subtext }]}>
             Your seller account is currently under review. We'll notify you once your account is verified.
           </Text>
+          <TouchableOpacity
+            style={[styles.profileButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
+            <Text style={styles.profileButtonText}>View/Edit Profile</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  const isBasicPlan = subscription?.planId === 'basic';
+
   const handleAddProduct = () => {
     navigation.navigate('AddProduct');
+  };
+
+  const handleInventoryPress = () => {
+    navigation.navigate('Inventory');
   };
 
   const renderOrderItem = ({ item }) => (
@@ -268,8 +257,11 @@ const SellerDashboardScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Seller Dashboard</Text>
-        <TouchableOpacity onPress={handleAddProduct}>
-          <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate('SellerSettings')}
+        >
+          <Ionicons name="settings-outline" size={24} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -286,124 +278,192 @@ const SellerDashboardScreen = ({ navigation }) => {
       >
         {/* Store Info */}
         <View style={styles.storeSection}>
-          <Text style={[styles.storeName, { color: theme.colors.text }]}>
-            {profileData.seller.storeName || 'My Store'}
-          </Text>
-          <Text style={[styles.storeDescription, { color: theme.colors.subtext }]}>
-            {profileData.seller.storeDescription || 'Add a description for your store'}
-          </Text>
+          <View style={styles.storeHeader}>
+            <View>
+              <Text style={[styles.storeName, { color: theme.colors.text }]}>
+                {sellerData.storeName || 'My Store'}
+              </Text>
+              <Text style={[styles.storeDescription, { color: theme.colors.subtext }]}>
+                {sellerData.storeDescription || 'Add a description for your store'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: theme.colors.primary + '20' }]}
+              onPress={() => navigation.navigate('EditProfile')}
+            >
+              <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Metrics */}
-        <View style={styles.metricsContainer}>
+        {/* Metrics Grid */}
+        <View style={styles.metricsGrid}>
           <MetricCard
-            title="Total Sales"
-            value={`₦${profileData.seller.metrics?.totalSales?.toLocaleString() || '0'}`}
+            title="Today's Sales"
+            value={`₦${metrics?.totalSales?.toLocaleString() || '0'}`}
+            subtitle="12% increase"
             icon="cash"
             color="#4CAF50"
             theme={theme}
           />
           <MetricCard
-            title="Total Orders"
-            value={profileData.seller.metrics?.totalOrders || '0'}
+            title="Orders"
+            value={metrics?.totalOrders || '0'}
+            subtitle={`${metrics?.pendingOrders || 0} pending`}
             icon="cart"
             color="#2196F3"
             theme={theme}
           />
           <MetricCard
-            title="Pending Orders"
-            value={profileData.seller.metrics?.pendingOrders || '0'}
-            icon="time"
-            color="#FF9800"
+            title="Products"
+            value={metrics?.totalProducts || '0'}
+            subtitle={`${isBasicPlan ? '50' : '100'} limit`}
+            icon="cube"
+            color="#9C27B0"
             theme={theme}
           />
           <MetricCard
-            title="Total Products"
-            value={profileData.seller.metrics?.totalProducts || '0'}
-            icon="cube"
-            color="#9C27B0"
+            title="Views"
+            value="2,458"
+            subtitle="Last 7 days"
+            icon="eye"
+            color="#FF9800"
             theme={theme}
           />
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.sectionTitle}>
-          <Text style={[styles.sectionText, { color: theme.colors.text }]}>
+        <View style={styles.quickActionsContainer}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             Quick Actions
           </Text>
-        </View>
-
-        <View style={styles.quickActionsContainer}>
-          <QuickAction
-            title="Add New Product"
-            icon="add-circle"
-            onPress={() => navigation.navigate('AddProduct')}
-            theme={theme}
-          />
-          <QuickAction
-            title="Manage Products"
-            icon="cube"
-            onPress={() => navigation.navigate('MyProducts')}
-            theme={theme}
-          />
-          <QuickAction
-            title="Manage Orders"
-            icon="list"
-            onPress={() => navigation.navigate('SellerOrders')}
-            theme={theme}
-          />
-          <QuickAction
-            title="View Analytics"
-            icon="bar-chart"
-            onPress={() => {}}
-            theme={theme}
-          />
+          <View style={styles.quickActionsGrid}>
+            <QuickAction
+              title="Add Product"
+              icon="add-circle-outline"
+              onPress={handleAddProduct}
+              theme={theme}
+            />
+            <QuickAction
+              title="Inventory"
+              icon="cube-outline"
+              onPress={handleInventoryPress}
+              theme={theme}
+            />
+            <QuickAction
+              title="Orders"
+              icon="receipt-outline"
+              onPress={() => navigation.navigate('SellerOrders')}
+              theme={theme}
+            />
+            <QuickAction
+              title="Analytics"
+              icon="bar-chart-outline"
+              onPress={() => navigation.navigate('Analytics')}
+              theme={theme}
+            />
+            <QuickAction
+              title="Customers"
+              icon="people-outline"
+              onPress={() => navigation.navigate('Customers')}
+              theme={theme}
+            />
+          </View>
         </View>
 
         {/* Revenue Chart */}
-        <View style={[styles.chartCard, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.chartTitle, { color: theme.colors.text }]}>Weekly Revenue</Text>
+        <View style={[styles.section, styles.chartSection, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.chartHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Revenue</Text>
+            <View style={styles.periodSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === 'week' && { backgroundColor: theme.colors.primary + '20' }
+                ]}
+                onPress={() => setSelectedPeriod('week')}
+              >
+                <Text style={[
+                  styles.periodButtonText,
+                  { color: selectedPeriod === 'week' ? theme.colors.primary : theme.colors.subtext }
+                ]}>Week</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === 'month' && { backgroundColor: theme.colors.primary + '20' }
+                ]}
+                onPress={() => setSelectedPeriod('month')}
+              >
+                <Text style={[
+                  styles.periodButtonText,
+                  { color: selectedPeriod === 'month' ? theme.colors.primary : theme.colors.subtext }
+                ]}>Month</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           <LineChart
-            data={chartData}
-            width={width - 32}
+            data={{
+              labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+              datasets: [{
+                data: [50000, 75000, 45000, 90000, 60000, 85000, 70000]
+              }]
+            }}
+            width={width - 48}
             height={220}
-            chartConfig={chartConfig}
+            chartConfig={{
+              backgroundColor: theme.colors.surface,
+              backgroundGradientFrom: theme.colors.surface,
+              backgroundGradientTo: theme.colors.surface,
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(30, 144, 255, ${opacity})`,
+              labelColor: (opacity = 1) => theme.colors.subtext,
+              style: {
+                borderRadius: 16
+              },
+              propsForDots: {
+                r: '6',
+                strokeWidth: '2',
+                stroke: theme.colors.primary
+              }
+            }}
             bezier
-            style={[styles.chart, { backgroundColor: theme.colors.card }]}
+            style={styles.chart}
           />
         </View>
 
-        {/* Recent Orders */}
+        {/* Recent Activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recent Orders</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Orders')}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recent Activity</Text>
+            <TouchableOpacity>
               <Text style={[styles.seeAll, { color: theme.colors.primary }]}>See All</Text>
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={recentOrders}
-            renderItem={renderOrderItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.ordersList}
-          />
-        </View>
-
-        {/* Low Stock Alert */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Low Stock Alert</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Inventory')}>
-              <Text style={[styles.seeAll, { color: theme.colors.primary }]}>Manage</Text>
-            </TouchableOpacity>
+          <View style={styles.activityList}>
+            {[1, 2, 3].map((_, index) => (
+              <View 
+                key={index}
+                style={[
+                  styles.activityItem,
+                  { backgroundColor: theme.colors.surface }
+                ]}
+              >
+                <View style={[styles.activityIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                  <Ionicons name="cart" size={20} color={theme.colors.primary} />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={[styles.activityTitle, { color: theme.colors.text }]}>
+                    New order received
+                  </Text>
+                  <Text style={[styles.activityTime, { color: theme.colors.subtext }]}>
+                    2 hours ago
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.subtext} />
+              </View>
+            ))}
           </View>
-          {lowStockProducts.map((item) => (
-            <View key={item.id} style={{ marginBottom: 8 }}>
-              {renderLowStockItem({ item })}
-            </View>
-          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -445,7 +505,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
@@ -457,55 +520,135 @@ const styles = StyleSheet.create({
   storeSection: {
     padding: 16,
   },
+  storeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   storeName: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   storeDescription: {
     fontSize: 14,
-    marginBottom: 16,
   },
-  metricsContainer: {
+  editButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+    padding: 8,
+    gap: 8,
   },
-  sectionTitle: {
-    marginBottom: 16,
-  },
-  sectionText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  quickActionsContainer: {
-    marginBottom: 24,
-  },
-  chartCard: {
-    margin: 16,
+  metricCard: {
+    flex: 1,
+    minWidth: '45%',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    marginHorizontal: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  chartTitle: {
+  metricIconContainer: {
+    marginRight: 12,
+  },
+  metricIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  metricContent: {
+    flex: 1,
+  },
+  metricTitle: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  metricSubtitle: {
+    fontSize: 12,
+  },
+  section: {
+    padding: 16,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
   },
+  quickActionsContainer: {
+    padding: 16,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    gap: 12,
+  },
+  quickAction: {
+    flex: 1,
+    minWidth: '45%',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  quickActionText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  chartSection: {
+    borderRadius: 16,
+    marginHorizontal: 16,
+    padding: 16,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  periodSelector: {
+    flexDirection: 'row',
+    backgroundColor: '#00000010',
+    borderRadius: 20,
+    padding: 4,
+  },
+  periodButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  periodButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   chart: {
     marginVertical: 8,
     borderRadius: 16,
-  },
-  section: {
-    padding: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -517,8 +660,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  ordersList: {
-    paddingRight: 16,
+  activityList: {
+    gap: 12,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  activityTime: {
+    fontSize: 12,
+  },
+  verificationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  verificationTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  verificationText: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  profileButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  profileButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   orderItem: {
     width: 280,
@@ -599,23 +795,6 @@ const styles = StyleSheet.create({
   stockText: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  verificationContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  verificationTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  verificationText: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 24,
   },
 });
 

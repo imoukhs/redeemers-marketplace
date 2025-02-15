@@ -113,4 +113,25 @@ export const sellerAPI = {
     const response = await api.delete('/seller/products/bulk', { data: { productIds } });
     return response;
   },
+
+  // Promotion Management
+  getPromotions: async () => {
+    const response = await api.get('/seller/promotions');
+    return response;
+  },
+
+  createPromotion: async (promotionData) => {
+    const response = await api.post('/seller/promotions', promotionData);
+    return response;
+  },
+
+  updatePromotion: async (promotionId, promotionData) => {
+    const response = await api.put(`/seller/promotions/${promotionId}`, promotionData);
+    return response;
+  },
+
+  deletePromotion: async (promotionId) => {
+    const response = await api.delete(`/seller/promotions/${promotionId}`);
+    return response;
+  },
 }; 

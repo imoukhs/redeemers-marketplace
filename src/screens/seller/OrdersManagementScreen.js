@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,236 +6,177 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
-  ActivityIndicator,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-
-// Mock data - Replace with API call later
-const mockOrders = [
-  {
-    id: '1',
-    orderNumber: 'ORD-001',
-    customerName: 'John Doe',
-    date: '2024-03-15T10:30:00',
-    total: 699000,
-    status: 'pending',
-    items: [
-      {
-        id: '1',
-        name: 'iPhone 12 Pro Max',
-        quantity: 1,
-        price: 699000,
-      },
-    ],
-  },
-  {
-    id: '2',
-    orderNumber: 'ORD-002',
-    customerName: 'Jane Smith',
-    date: '2024-03-14T15:45:00',
-    total: 258000,
-    status: 'processing',
-    items: [
-      {
-        id: '2',
-        name: 'Nike Air Max 270',
-        quantity: 2,
-        price: 129000,
-      },
-    ],
-  },
-  {
-    id: '3',
-    orderNumber: 'ORD-003',
-    customerName: 'Mike Johnson',
-    date: '2024-03-13T09:15:00',
-    total: 199000,
-    status: 'shipped',
-    items: [
-      {
-        id: '3',
-        name: 'Sony WH-1000XM4',
-        quantity: 1,
-        price: 199000,
-      },
-    ],
-  },
-  {
-    id: '4',
-    orderNumber: 'ORD-004',
-    customerName: 'Sarah Wilson',
-    date: '2024-03-12T14:20:00',
-    total: 79000,
-    status: 'delivered',
-    items: [
-      {
-        id: '4',
-        name: "Levi's 501 Original",
-        quantity: 1,
-        price: 79000,
-      },
-    ],
-  },
-];
+import { useSeller } from '../../context/SellerContext';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const OrdersManagementScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const [loading, setLoading] = useState(false);
-  const [orders, setOrders] = useState(mockOrders);
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const { getOrders, updateOrderStatus } = useSeller();
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'pending', label: 'Pending' },
-    { id: 'processing', label: 'Processing' },
-    { id: 'shipped', label: 'Shipped' },
-    { id: 'delivered', label: 'Delivered' },
-  ];
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
-  const handleUpdateStatus = (orderId, newStatus) => {
-    Alert.alert(
-      'Update Order Status',
-      `Are you sure you want to update this order to ${newStatus}?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Update',
-          onPress: () => {
-            // TODO: Implement API call to update order status
-            setOrders(orders.map(order => 
-              order.id === orderId 
-                ? { ...order, status: newStatus }
-                : order
-            ));
-          },
-        },
-      ]
-    );
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const fetchedOrders = await getOrders();
+      setOrders(fetchedOrders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      Alert.alert('Error', 'Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleViewOrderDetails = (order) => {
-    navigation.navigate('OrderDetails', { order });
+  const handleStatusUpdate = async (orderId, newStatus) => {
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      ));
+      Alert.alert('Success', 'Order status updated successfully');
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      Alert.alert('Error', 'Failed to update order status. Please try again.');
+    }
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'pending':
-        return '#FF9800';
+        return '#FFA500';
       case 'processing':
-        return '#2196F3';
+        return '#1E90FF';
       case 'shipped':
-        return '#9C27B0';
+        return '#4CAF50';
       case 'delivered':
         return '#4CAF50';
+      case 'cancelled':
+        return '#FF5252';
       default:
         return theme.colors.text;
     }
   };
 
-  const formatDate = (dateString) => {
-    const options = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  const StatusBadge = ({ status }) => (
+    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '20' }]}>
+      <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Text>
+    </View>
+  );
 
-  const renderOrder = ({ item }) => (
+  const OrderCard = ({ order }) => (
     <TouchableOpacity
       style={[styles.orderCard, { backgroundColor: theme.colors.surface }]}
-      onPress={() => handleViewOrderDetails(item)}
+      onPress={() => navigation.navigate('OrderDetails', { orderId: order.id })}
     >
       <View style={styles.orderHeader}>
-        <View>
-          <Text style={[styles.orderNumber, { color: theme.colors.text }]}>
-            {item.orderNumber}
-          </Text>
-          <Text style={[styles.customerName, { color: theme.colors.subtext }]}>
-            {item.customerName}
-          </Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </Text>
-        </View>
+        <Text style={[styles.orderId, { color: theme.colors.text }]}>
+          Order #{order.id}
+        </Text>
+        <StatusBadge status={order.status} />
       </View>
 
       <View style={styles.orderInfo}>
         <View style={styles.infoRow}>
-          <Text style={[styles.infoLabel, { color: theme.colors.subtext }]}>Date:</Text>
-          <Text style={[styles.infoValue, { color: theme.colors.text }]}>
-            {formatDate(item.date)}
+          <Text style={[styles.label, { color: theme.colors.subtext }]}>Customer:</Text>
+          <Text style={[styles.value, { color: theme.colors.text }]}>
+            {order.customerName}
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={[styles.infoLabel, { color: theme.colors.subtext }]}>Items:</Text>
-          <Text style={[styles.infoValue, { color: theme.colors.text }]}>
-            {item.items.reduce((acc, curr) => acc + curr.quantity, 0)}
+          <Text style={[styles.label, { color: theme.colors.subtext }]}>Items:</Text>
+          <Text style={[styles.value, { color: theme.colors.text }]}>
+            {order.items.length} items
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={[styles.infoLabel, { color: theme.colors.subtext }]}>Total:</Text>
-          <Text style={[styles.infoValue, { color: theme.colors.primary }]}>
-            ₦{item.total.toLocaleString()}
+          <Text style={[styles.label, { color: theme.colors.subtext }]}>Total:</Text>
+          <Text style={[styles.value, { color: theme.colors.text }]}>
+            ₦{order.total.toLocaleString()}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.label, { color: theme.colors.subtext }]}>Date:</Text>
+          <Text style={[styles.value, { color: theme.colors.text }]}>
+            {new Date(order.date).toLocaleDateString()}
           </Text>
         </View>
       </View>
 
-      <View style={styles.orderActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-          onPress={() => handleViewOrderDetails(item)}
-        >
-          <Text style={styles.actionButtonText}>View Details</Text>
-        </TouchableOpacity>
+      <View style={styles.actionButtons}>
+        {order.status === 'pending' && (
+          <>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#1E90FF' }]}
+              onPress={() => handleStatusUpdate(order.id, 'processing')}
+            >
+              <Text style={styles.actionButtonText}>Process</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#FF5252' }]}
+              onPress={() => handleStatusUpdate(order.id, 'cancelled')}
+            >
+              <Text style={styles.actionButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {order.status === 'processing' && (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
+            onPress={() => handleStatusUpdate(order.id, 'shipped')}
+          >
+            <Text style={styles.actionButtonText}>Mark Shipped</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
 
-  const renderFilter = ({ item }) => (
+  const FilterButton = ({ status }) => (
     <TouchableOpacity
       style={[
-        styles.filterChip,
-        {
-          backgroundColor:
-            selectedFilter === item.id ? theme.colors.primary : theme.colors.surface,
-        },
+        styles.filterButton,
+        filterStatus === status && styles.filterButtonActive,
+        { backgroundColor: theme.colors.surface }
       ]}
-      onPress={() => setSelectedFilter(item.id)}
+      onPress={() => setFilterStatus(status)}
     >
       <Text
         style={[
-          styles.filterText,
-          {
-            color:
-              selectedFilter === item.id ? '#fff' : theme.colors.text,
-          },
+          styles.filterButtonText,
+          filterStatus === status && styles.filterButtonTextActive,
+          { color: theme.colors.text }
         ]}
       >
-        {item.label}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
       </Text>
     </TouchableOpacity>
   );
 
+  const filteredOrders = filterStatus === 'all'
+    ? orders
+    : orders.filter(order => order.status.toLowerCase() === filterStatus);
+
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <LoadingWave color={theme.colors.primary} />
       </View>
     );
   }
-
-  const filteredOrders = selectedFilter === 'all'
-    ? orders
-    : orders.filter(order => order.status === selectedFilter);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -247,29 +188,38 @@ const OrdersManagementScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Orders</Text>
-        <View style={styles.backButton} />
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={loadOrders}
+        >
+          <Ionicons name="refresh" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.filtersContainer}>
-        <FlatList
-          data={filters}
-          renderItem={renderFilter}
-          keyExtractor={(item) => item.id}
+      <View style={styles.filterContainer}>
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersList}
-        />
+          contentContainerStyle={styles.filterScroll}
+        >
+          <FilterButton status="all" />
+          <FilterButton status="pending" />
+          <FilterButton status="processing" />
+          <FilterButton status="shipped" />
+          <FilterButton status="delivered" />
+          <FilterButton status="cancelled" />
+        </ScrollView>
       </View>
 
       <FlatList
         data={filteredOrders}
-        renderItem={renderOrder}
-        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <OrderCard order={item} />}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.ordersList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={64} color={theme.colors.subtext} />
+            <Ionicons name="document-text-outline" size={64} color={theme.colors.subtext} />
             <Text style={[styles.emptyText, { color: theme.colors.subtext }]}>
               No orders found
             </Text>
@@ -284,11 +234,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -297,67 +242,76 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: {
-    padding: 8,
     width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
   },
-  filtersContainer: {
+  refreshButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterContainer: {
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
-  filtersList: {
-    paddingHorizontal: 16,
+  filterScroll: {
+    paddingHorizontal: 12,
   },
-  filterChip: {
+  filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    marginRight: 8,
+    marginHorizontal: 4,
   },
-  filterText: {
+  filterButtonActive: {
+    backgroundColor: '#1E90FF',
+  },
+  filterButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
   },
   ordersList: {
     padding: 16,
   },
   orderCard: {
     borderRadius: 12,
-    marginBottom: 16,
     padding: 16,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  orderNumber: {
+  orderId: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  customerName: {
-    fontSize: 14,
   },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   orderInfo: {
     marginBottom: 16,
@@ -367,16 +321,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  infoLabel: {
+  label: {
     fontSize: 14,
   },
-  infoValue: {
+  value: {
     fontSize: 14,
     fontWeight: '500',
   },
-  orderActions: {
+  actionButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: 8,
   },
   actionButton: {
     paddingHorizontal: 16,
@@ -384,15 +339,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 64,
+    paddingVertical: 32,
   },
   emptyText: {
     fontSize: 16,

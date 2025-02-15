@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,17 +10,32 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { paymentAPI } from '../../services/api/payment';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const PaymentMethodsScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const [paymentMethods, setPaymentMethods] = useState([
-    { id: '1', type: 'card', last4: '4242', brand: 'visa' },
-    { id: '2', type: 'card', last4: '5555', brand: 'mastercard' },
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPaymentMethods();
+  }, []);
+
+  const loadPaymentMethods = async () => {
+    try {
+      setLoading(true);
+      const response = await paymentAPI.getSavedCards();
+      setPaymentMethods(response);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load payment methods');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddPaymentMethod = () => {
-    // TODO: Implement add payment method functionality
-    Alert.alert('Coming Soon', 'Add payment method functionality will be available soon.');
+    navigation.navigate('AddCard');
   };
 
   const handleDeletePaymentMethod = (id) => {
@@ -32,8 +47,17 @@ const PaymentMethodsScreen = ({ navigation }) => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            setPaymentMethods(methods => methods.filter(method => method.id !== id));
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await paymentAPI.deleteCard(id);
+              await loadPaymentMethods();
+              Alert.alert('Success', 'Payment method deleted successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete payment method');
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -44,13 +68,16 @@ const PaymentMethodsScreen = ({ navigation }) => {
     <View style={[styles.paymentMethodItem, { backgroundColor: theme.colors.card }]}>
       <View style={styles.paymentMethodInfo}>
         <Ionicons
-          name={item.brand === 'visa' ? 'card' : 'card-outline'}
+          name={item.brand.toLowerCase() === 'visa' ? 'card' : 'card-outline'}
           size={24}
           color={theme.colors.primary}
         />
         <View style={styles.paymentMethodDetails}>
           <Text style={[styles.paymentMethodType, { color: theme.colors.text }]}>
             {item.brand.toUpperCase()} ending in {item.last4}
+          </Text>
+          <Text style={[styles.expiryDate, { color: theme.colors.subtext }]}>
+            Expires {item.expMonth}/{item.expYear}
           </Text>
         </View>
       </View>
@@ -62,6 +89,14 @@ const PaymentMethodsScreen = ({ navigation }) => {
       </TouchableOpacity>
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <LoadingWave color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -106,6 +141,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -145,6 +185,10 @@ const styles = StyleSheet.create({
   paymentMethodType: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  expiryDate: {
+    fontSize: 14,
+    marginTop: 4,
   },
   deleteButton: {
     padding: 8,

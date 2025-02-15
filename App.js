@@ -8,6 +8,7 @@ import { AddressProvider } from './src/context/AddressContext';
 import { WishlistProvider } from './src/context/WishlistContext';
 import { SearchProvider } from './src/context/SearchContext';
 import { SellerProvider } from './src/context/SellerContext';
+import { SubscriptionProvider } from './src/context/SubscriptionContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -17,15 +18,17 @@ export default function App() {
         <CartProvider>
           <WishlistProvider>
             <ProfileProvider>
-              <SellerProvider>
-                <AddressProvider>
-                  <SearchProvider>
-                    <SafeAreaProvider>
-                      <AppNavigator />
-                    </SafeAreaProvider>
-                  </SearchProvider>
-                </AddressProvider>
-              </SellerProvider>
+              <SubscriptionProvider>
+                <SellerProvider>
+                  <AddressProvider>
+                    <SearchProvider>
+                      <SafeAreaProvider>
+                        <AppNavigator />
+                      </SafeAreaProvider>
+                    </SearchProvider>
+                  </AddressProvider>
+                </SellerProvider>
+              </SubscriptionProvider>
             </ProfileProvider>
           </WishlistProvider>
         </CartProvider>

@@ -15,7 +15,7 @@ import { useTheme } from '../../context/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 
 const AddProductScreen = ({ navigation, route }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -49,6 +49,8 @@ const AddProductScreen = ({ navigation, route }) => {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        presentationStyle: isDarkMode ? 'overFullScreen' : 'pageSheet',
+        backgroundColor: theme.colors.background,
       });
 
       if (!result.canceled) {

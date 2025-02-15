@@ -12,11 +12,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import PaystackPayment from '../../components/payment/PaystackPayment';
+import LoadingWave from '../../components/common/LoadingWave';
 
 const CheckoutScreen = ({ navigation }) => {
   const { cartItems, getCartTotal, clearCart } = useCart();
   const { userData } = useAuth();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [shippingDetails, setShippingDetails] = useState({
     fullName: userData?.fullName || '',
     phoneNumber: userData?.phoneNumber || '',
@@ -25,7 +30,7 @@ const CheckoutScreen = ({ navigation }) => {
     state: '',
     zipCode: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card' or 'cash'
+  const [paymentMethod, setPaymentMethod] = useState('card');
 
   const handleInputChange = (field, value) => {
     setShippingDetails((prev) => ({
@@ -45,12 +50,53 @@ const CheckoutScreen = ({ navigation }) => {
     return true;
   };
 
+  const handlePaymentSuccess = async (response) => {
+    try {
+      setLoading(true);
+      setShowPayment(false);
+
+      const orderData = {
+        items: cartItems,
+        total: getCartTotal(),
+        shipping: shippingDetails,
+        paymentMethod,
+        paymentReference: response.reference,
+        userId: userData?.id,
+        orderDate: new Date().toISOString(),
+      };
+
+      // TODO: Replace with actual API call to process order
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Clear cart after successful order
+      await clearCart();
+
+      // Navigate to order confirmation
+      navigation.navigate('OrderConfirmation', { orderData });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to process order. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentError = (error) => {
+    setShowPayment(false);
+    Alert.alert('Payment Failed', error?.message || 'An error occurred during payment');
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
+    Alert.alert('Payment Cancelled', 'You have cancelled the payment');
+  };
+
   const handlePlaceOrder = async () => {
     if (!validateForm()) return;
 
-    setLoading(true);
-    try {
-      // TODO: Replace with actual API call to process order
+    if (paymentMethod === 'card') {
+      setShowPayment(true);
+    } else {
+      // Handle cash on delivery
       const orderData = {
         items: cartItems,
         total: getCartTotal(),
@@ -60,41 +106,46 @@ const CheckoutScreen = ({ navigation }) => {
         orderDate: new Date().toISOString(),
       };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Clear cart after successful order
-      await clearCart();
-
-      // Show success message and navigate to order confirmation
-      Alert.alert(
-        'Success',
-        'Your order has been placed successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('OrderConfirmation', { orderData }),
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to place order. Please try again.');
-    } finally {
-      setLoading(false);
+      setLoading(true);
+      try {
+        // TODO: Replace with actual API call to process order
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await clearCart();
+        navigation.navigate('OrderConfirmation', { orderData });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to place order. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {showPayment && (
+        <PaystackPayment
+          amount={getCartTotal() + 2000} // Including shipping fee
+          email={userData?.email}
+          onSuccess={handlePaymentSuccess}
+          onCancel={handlePaymentCancel}
+          onError={handlePaymentError}
+          metadata={{
+            customerName: shippingDetails.fullName,
+            phoneNumber: shippingDetails.phoneNumber,
+            orderId: `ORD-${Date.now()}`,
+          }}
+        />
+      )}
+
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={styles.placeholder} />
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Checkout</Text>
+        <View style={styles.backButton} />
       </View>
 
       <ScrollView style={styles.content}>
