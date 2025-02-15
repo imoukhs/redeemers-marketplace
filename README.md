@@ -70,7 +70,6 @@ A modern, cross-platform e-commerce application built with React Native Expo, of
 
 ## 📦 Installation
 
-\`\`\`bash
 # Clone the repository
 git clone [repository-url]
 
@@ -81,7 +80,7 @@ cd redeemers-marketplace
 npm install
 
 # Start the development server
-expo start
+npx expo start
 \`\`\`
 
 ## 🔧 Environment Setup
@@ -139,8 +138,8 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## 📞 Support
 
-For support, email support@redeemersmarketplace.com or join our Slack channel.
+For support, email kingojoimoukhuede@gmail.co 
 
 ---
 
-Made with ❤️ by Redeemer's Marketplace Team 
+Made with ❤️ by Ojo-Imoukhuede King 
