@@ -71,7 +71,6 @@ const AboutAppScreen = ({ navigation }) => {
             {[
               'Cross-platform compatibility',
               'Secure authentication',
-              'Real-time chat',
               'Advanced search',
               'Seller dashboard',
               'Multiple payment options',

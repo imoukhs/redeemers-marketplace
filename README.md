@@ -11,7 +11,6 @@ A modern, cross-platform e-commerce application built with React Native Expo, of
 - Cross-platform compatibility (iOS & Android)
 - Biometric authentication (Face ID/Touch ID)
 - Seller subscription model with first month free
-- Real-time chat between buyers and sellers
 - Advanced search and filtering system
 - Secure local data storage
 - Dark and Light theme support
@@ -32,7 +31,6 @@ A modern, cross-platform e-commerce application built with React Native Expo, of
 - Product details with image carousel
 - Shopping cart management
 - Secure checkout process
-- Real-time chat system
 - Seller dashboard
 - User profile management
 
@@ -64,7 +62,7 @@ A modern, cross-platform e-commerce application built with React Native Expo, of
 - AsyncStorage
 
 ### Backend & Services
-- Firebase/Socket.IO for real-time features
+- Firebase for data storage
 - Paystack for payment processing
 - Cloud storage for media
 - Push notification service
@@ -120,6 +118,7 @@ expo run:android
 
 ## 🎯 Future Enhancements
 
+- [ ] Real-time chat system between buyers and sellers
 - [ ] Multi-language support
 - [ ] AR product preview
 - [ ] Voice search

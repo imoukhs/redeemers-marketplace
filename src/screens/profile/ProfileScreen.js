@@ -67,7 +67,7 @@ const QuickAction = ({ title, icon, onPress, theme }) => (
 
 const ProfileScreen = ({ navigation }) => {
   const { profileData, loading: profileLoading, updatePreference } = useProfile();
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const { theme } = useTheme();
   const { 
     loading: sellerLoading, 
@@ -101,7 +101,10 @@ const ProfileScreen = ({ navigation }) => {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
+            const result = await logout();
+            if (!result.success) {
+              Alert.alert('Error', result.error || 'Failed to logout. Please try again.');
+            }
           },
         },
       ],
@@ -359,7 +362,7 @@ const ProfileScreen = ({ navigation }) => {
                 onPress={() => navigation.navigate('HelpCenter')}
               />
               <MenuItem
-                icon="chatbubble-outline"
+                icon="mail-outline"
                 title="Contact Support"
                 onPress={() => navigation.navigate('ContactUs')}
               />
@@ -458,7 +461,7 @@ const ProfileScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('HelpCenter')}
             />
             <MenuItem
-              icon="chatbubble-outline"
+              icon="mail-outline"
               title="Contact Us"
               onPress={() => navigation.navigate('ContactUs')}
             />

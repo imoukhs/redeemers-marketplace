@@ -1,77 +1,75 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 
-const LoadingWave = ({ color = '#3498db' }) => {
-  const barCount = 4;
-  const animatedValues = useRef(
-    Array(barCount).fill(0).map(() => new Animated.Value(10))
-  ).current;
+const LoadingWave = ({ color = '#007AFF', size = 50 }) => {
+  const animations = [...Array(3)].map(() => new Animated.Value(0));
 
   useEffect(() => {
-    const animations = animatedValues.map((value, index) => {
+    const createAnimation = (value, delay) => {
       return Animated.sequence([
-        Animated.delay(index * 100),
+        Animated.delay(delay),
         Animated.loop(
           Animated.sequence([
             Animated.timing(value, {
-              toValue: 50,
-              duration: 500,
-              useNativeDriver: false,
+              toValue: 1,
+              duration: 1000,
+              useNativeDriver: true,
             }),
             Animated.timing(value, {
-              toValue: 10,
-              duration: 500,
-              useNativeDriver: false,
+              toValue: 0,
+              duration: 1000,
+              useNativeDriver: true,
             }),
           ])
         ),
       ]);
-    });
+    };
 
-    Animated.parallel(animations).start();
+    Animated.parallel(
+      animations.map((value, index) => createAnimation(value, index * 333))
+    ).start();
 
     return () => {
-      animations.forEach(anim => anim.stop());
+      animations.forEach(anim => anim.stopAnimation());
     };
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.wave}>
-        {animatedValues.map((value, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.bar,
-              {
-                height: value,
-                backgroundColor: color,
-              },
-            ]}
-          />
-        ))}
-      </View>
+    <View style={[styles.container, { height: size }]}>
+      {animations.map((anim, index) => (
+        <Animated.View
+          key={index}
+          style={[
+            styles.dot,
+            {
+              backgroundColor: color,
+              width: size / 6,
+              height: size / 6,
+              borderRadius: size / 12,
+              transform: [
+                {
+                  translateY: anim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -(size / 3)],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  wave: {
-    width: 300,
-    height: 100,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  bar: {
-    width: 20,
-    marginHorizontal: 5,
-    borderRadius: 5,
+  dot: {
+    marginHorizontal: 4,
   },
 });
 

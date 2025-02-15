@@ -7,6 +7,11 @@ import { useTheme } from '../context/ThemeContext';
 import LoadingWave from '../components/common/LoadingWave';
 import MainTabNavigator from './MainTabNavigator';
 import AuthNavigator from './AuthNavigator';
+import AdminNavigator from './AdminNavigator';
+import SplashScreen from '../screens/SplashScreen';
+import AdminSettingsScreen from '../screens/admin/AdminSettingsScreen';
+
+// Import all the screens that should be accessible from any navigator
 import ProductDetailScreen from '../screens/product/ProductDetailScreen';
 import ProductListScreen from '../screens/product/ProductListScreen';
 import CartScreen from '../screens/cart/CartScreen';
@@ -15,18 +20,22 @@ import OrderConfirmationScreen from '../screens/cart/OrderConfirmationScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ShippingAddressScreen from '../screens/profile/ShippingAddressScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
+import SellerOnboardingScreen from '../screens/seller/SellerOnboardingScreen';
+import SubscriptionScreen from '../screens/seller/SubscriptionScreen';
 import SellerDashboardScreen from '../screens/seller/DashboardScreen';
+import AnalyticsScreen from '../screens/seller/AnalyticsScreen';
 import AddProductScreen from '../screens/seller/AddProductScreen';
 import SelectCategoryScreen from '../screens/seller/SelectCategoryScreen';
 import MyProductsScreen from '../screens/seller/MyProductsScreen';
 import OrdersManagementScreen from '../screens/seller/OrdersManagementScreen';
 import OrderDetailsScreen from '../screens/seller/OrderDetailsScreen';
-import AnalyticsScreen from '../screens/seller/AnalyticsScreen';
 import InventoryScreen from '../screens/seller/InventoryScreen';
 import CustomerManagementScreen from '../screens/seller/CustomerManagementScreen';
+import PromotionsScreen from '../screens/seller/PromotionsScreen';
+import CreatePromotionScreen from '../screens/seller/CreatePromotionScreen';
+import EditPromotionScreen from '../screens/seller/EditPromotionScreen';
 import WishlistScreen from '../screens/wishlist/WishlistScreen';
 import SearchScreen from '../screens/main/SearchScreen';
-import SplashScreen from '../screens/SplashScreen';
 import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
 import AboutAppScreen from '../screens/profile/AboutAppScreen';
 import TermsScreen from '../screens/profile/TermsScreen';
@@ -35,16 +44,11 @@ import PaymentMethodsScreen from '../screens/profile/PaymentMethodsScreen';
 import AddCardScreen from '../screens/profile/AddCardScreen';
 import HelpCenterScreen from '../screens/profile/HelpCenterScreen';
 import ContactUsScreen from '../screens/profile/ContactUsScreen';
-import SellerOnboardingScreen from '../screens/seller/SellerOnboardingScreen';
-import SubscriptionScreen from '../screens/seller/SubscriptionScreen';
-import PromotionsScreen from '../screens/seller/PromotionsScreen';
-import CreatePromotionScreen from '../screens/seller/CreatePromotionScreen';
-import EditPromotionScreen from '../screens/seller/EditPromotionScreen';
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
-  const { isLoading, userToken } = useAuth();
+  const { isLoading, userToken, userData } = useAuth();
   const { theme } = useTheme();
 
   if (isLoading) {
@@ -57,19 +61,26 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator 
-        screenOptions={{ 
+      <Stack.Navigator
+        screenOptions={{
           headerShown: false,
           animation: 'slide_from_right'
         }}
-        initialRouteName="Splash"
       >
-        <Stack.Screen name="Splash" component={SplashScreen} />
         {!userToken ? (
+          // Auth Stack
           <Stack.Screen name="Auth" component={AuthNavigator} />
         ) : (
+          // Main App Stack
           <>
-            <Stack.Screen name="MainTab" component={MainTabNavigator} />
+            {userData?.role === 'admin' ? (
+              <Stack.Screen name="AdminRoot" component={AdminNavigator} />
+            ) : (
+              <Stack.Screen name="MainRoot" component={MainTabNavigator} />
+            )}
+            
+            {/* Common screens accessible from any navigator */}
+            <Stack.Screen name="Settings" component={AdminSettingsScreen} />
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
             <Stack.Screen name="ProductList" component={ProductListScreen} />
             <Stack.Screen name="Cart" component={CartScreen} />
@@ -77,7 +88,6 @@ const AppNavigator = () => {
             <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="ShippingAddresses" component={ShippingAddressScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="SellerOnboarding" component={SellerOnboardingScreen} />
             <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
             <Stack.Screen name="SellerDashboard" component={SellerDashboardScreen} />

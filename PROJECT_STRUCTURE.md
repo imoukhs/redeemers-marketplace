@@ -26,9 +26,10 @@ redeemers-marketplace/
 │   │   ├── cart/
 │   │   │   ├── CartItem.js
 │   │   │   └── CartSummary.js
-│   │   └── chat/
-│   │       ├── ChatBubble.js
-│   │       └── ChatInput.js
+│   │   └── products/
+│   │       ├── ProductCard.js
+│   │       ├── ProductGrid.js
+│   │       └── ProductCarousel.js
 │   ├── screens/
 │   │   ├── auth/
 │   │   │   ├── LoginScreen.js
@@ -55,8 +56,7 @@ redeemers-marketplace/
 │   ├── services/
 │   │   ├── api/
 │   │   │   ├── auth.js
-│   │   │   ├── products.js
-│   │   │   └── chat.js
+│   │   │   └── products.js
 │   │   ├── storage/
 │   │   │   └── asyncStorage.js
 │   │   └── utils/
@@ -167,26 +167,6 @@ interface Order {
   trackingNumber?: string;
   createdAt: timestamp;
   updatedAt: timestamp;
-}
-```
-
-### Chat Collection
-```typescript
-interface Chat {
-  id: string;
-  buyerId: string;
-  sellerId: string;
-  productId?: string;
-  messages: {
-    id: string;
-    senderId: string;
-    content: string;
-    timestamp: timestamp;
-    read: boolean;
-  }[];
-  lastMessage: string;
-  lastMessageTime: timestamp;
-  status: 'active' | 'archived';
 }
 ```
 

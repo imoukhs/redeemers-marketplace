@@ -8,15 +8,19 @@ const { width } = Dimensions.get('window');
 
 const SplashScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const { userToken } = useAuth();
+  const { userToken, userData } = useAuth();
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace(userToken ? 'MainTab' : 'Auth');
+      if (userToken) {
+        navigation.replace(userData?.role === 'admin' ? 'AdminRoot' : 'MainRoot');
+      } else {
+        navigation.replace('Auth');
+      }
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [navigation, userToken]);
+  }, [navigation, userToken, userData]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>

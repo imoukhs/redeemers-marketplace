@@ -9,29 +9,32 @@ import { WishlistProvider } from './src/context/WishlistContext';
 import { SearchProvider } from './src/context/SearchContext';
 import { SellerProvider } from './src/context/SellerContext';
 import { SubscriptionProvider } from './src/context/SubscriptionContext';
+import { AdminProvider } from './src/context/AdminContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <ProfileProvider>
-              <SubscriptionProvider>
-                <SellerProvider>
-                  <AddressProvider>
-                    <SearchProvider>
-                      <SafeAreaProvider>
-                        <AppNavigator />
-                      </SafeAreaProvider>
-                    </SearchProvider>
-                  </AddressProvider>
-                </SellerProvider>
-              </SubscriptionProvider>
-            </ProfileProvider>
-          </WishlistProvider>
-        </CartProvider>
+        <AdminProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <ProfileProvider>
+                <SubscriptionProvider>
+                  <SellerProvider>
+                    <AddressProvider>
+                      <SearchProvider>
+                        <SafeAreaProvider>
+                          <AppNavigator />
+                        </SafeAreaProvider>
+                      </SearchProvider>
+                    </AddressProvider>
+                  </SellerProvider>
+                </SubscriptionProvider>
+              </ProfileProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </AdminProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -1,43 +1,47 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
 
 const ProductCard = ({ product, onPress, style }) => {
-  const { name, price, originalPrice, category, rating, reviews, discount } = product;
+  const { theme } = useTheme();
+
+  const formatPrice = (price) => {
+    return `₦${price.toLocaleString()}`;
+  };
 
   return (
-    <TouchableOpacity style={[styles.container, style]} onPress={onPress}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../../assets/dummy_600x400_000000_9abc32.png')}
-          style={styles.image}
-          resizeMode="cover"
-        />
-        {discount && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{discount}% OFF</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.infoContainer}>
-        <Text style={styles.category}>{category}</Text>
-        <Text style={styles.name} numberOfLines={2}>
-          {name}
+    <TouchableOpacity
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.card },
+        style,
+      ]}
+      onPress={onPress}
+    >
+      <Image
+        source={{ uri: product.image || 'https://via.placeholder.com/150' }}
+        style={styles.image}
+        resizeMode="cover"
+      />
+      <View style={styles.content}>
+        <Text style={[styles.name, { color: theme.colors.text }]} numberOfLines={2}>
+          {product.name}
         </Text>
-
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={14} color="#FFD700" />
-          <Text style={styles.rating}>{rating}</Text>
-          <Text style={styles.reviews}>({reviews})</Text>
-        </View>
-
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>₦{price.toLocaleString()}</Text>
-          {originalPrice && (
-            <Text style={styles.originalPrice}>
-              ₦{originalPrice.toLocaleString()}
+        <Text style={[styles.price, { color: theme.colors.primary }]}>
+          {formatPrice(product.price)}
+        </Text>
+        <View style={styles.footer}>
+          <View style={styles.rating}>
+            <Ionicons name="star" size={14} color="#FFD700" />
+            <Text style={[styles.ratingText, { color: theme.colors.subtext }]}>
+              {product.rating} ({product.reviews})
             </Text>
+          </View>
+          {product.discount && (
+            <View style={[styles.discountBadge, { backgroundColor: theme.colors.primary }]}>
+              <Text style={styles.discountText}>{product.discount}% OFF</Text>
+            </View>
           )}
         </View>
       </View>
@@ -47,87 +51,54 @@ const ProductCard = ({ product, onPress, style }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  imageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
     overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   image: {
     width: '100%',
-    height: '100%',
+    height: 150,
+    backgroundColor: '#f0f0f0',
   },
-  discountBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#FF4B4B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  discountText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  infoContainer: {
+  content: {
     padding: 12,
-  },
-  category: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
   },
   name: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rating: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 4,
-    marginRight: 4,
-  },
-  reviews: {
-    fontSize: 12,
-    color: '#666',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontWeight: '500',
+    marginBottom: 4,
   },
   price: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1E90FF',
-    marginRight: 8,
+    fontWeight: '600',
+    marginBottom: 8,
   },
-  originalPrice: {
-    fontSize: 14,
-    color: '#999',
-    textDecorationLine: 'line-through',
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  discountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  discountText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '500',
   },
 });
 

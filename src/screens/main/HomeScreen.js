@@ -1,28 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   ScrollView,
   TouchableOpacity,
+  FlatList,
+  RefreshControl,
   SafeAreaView,
-  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import ProductCard from '../../components/products/ProductCard';
 import { useTheme } from '../../context/ThemeContext';
+import ProductCard from '../../components/products/ProductCard';
+import LoadingWave from '../../components/common/LoadingWave';
 
-const featuredProducts = [
+// Mock data for development
+const mockCategories = [
+  { id: '1', name: 'Electronics', icon: 'phone-portrait-outline' },
+  { id: '2', name: 'Fashion', icon: 'shirt-outline' },
+  { id: '3', name: 'Home', icon: 'home-outline' },
+  { id: '4', name: 'Sports', icon: 'football-outline' },
+];
+
+const mockProducts = [
   {
     id: '1',
     name: 'iPhone 12 Pro Max',
     price: 699000,
-    originalPrice: 750000,
     category: 'Electronics',
     rating: 4.8,
     reviews: 245,
-    discount: 15,
   },
   {
     id: '2',
@@ -32,100 +39,101 @@ const featuredProducts = [
     rating: 4.5,
     reviews: 189,
   },
-  {
-    id: '3',
-    name: 'Sony WH-1000XM4',
-    price: 199000,
-    originalPrice: 250000,
-    category: 'Electronics',
-    rating: 4.9,
-    reviews: 320,
-    discount: 20,
-  },
-  {
-    id: '4',
-    name: "Levi's 501 Original",
-    price: 79000,
-    category: 'Fashion',
-    rating: 4.3,
-    reviews: 156,
-  },
-];
-
-const categories = [
-  { id: '1', name: 'Electronics', icon: 'phone-portrait-outline' },
-  { id: '2', name: 'Fashion', icon: 'shirt-outline' },
-  { id: '3', name: 'Home', icon: 'home-outline' },
-  { id: '4', name: 'Beauty', icon: 'sparkles-outline' },
-  { id: '5', name: 'Sports', icon: 'football-outline' },
 ];
 
 const HomeScreen = ({ navigation }) => {
   const { theme } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [categories, setCategories] = useState(mockCategories);
+  const [featuredProducts, setFeaturedProducts] = useState(mockProducts);
+  const [newArrivals, setNewArrivals] = useState(mockProducts);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      // In a real app, you would fetch data from an API here
+      setCategories(mockCategories);
+      setFeaturedProducts(mockProducts);
+      setNewArrivals(mockProducts);
+    } catch (error) {
+      console.error('Error loading home data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
 
   const handleProductPress = (product) => {
     navigation.navigate('ProductDetail', { product });
   };
 
+  const handleCategoryPress = (category) => {
+    navigation.navigate('ProductList', { category });
+  };
+
+  const handleSearchPress = () => {
+    navigation.navigate('Search');
+  };
+
   const renderCategory = ({ item }) => (
-    <TouchableOpacity 
-      style={[styles.categoryCard, { backgroundColor: theme.colors.surface }]}
-      onPress={() => navigation.navigate('ProductList', { category: item })}
+    <TouchableOpacity
+      style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}
+      onPress={() => handleCategoryPress(item)}
     >
-      <View style={[styles.categoryIcon, { backgroundColor: theme.colors.primary + '10' }]}>
+      <View style={[styles.categoryIcon, { backgroundColor: `${theme.colors.primary}20` }]}>
         <Ionicons name={item.icon} size={24} color={theme.colors.primary} />
       </View>
-      <Text style={[styles.categoryName, { color: theme.colors.text }]}>{item.name}</Text>
+      <Text style={[styles.categoryName, { color: theme.colors.text }]} numberOfLines={1}>
+        {item.name}
+      </Text>
     </TouchableOpacity>
   );
 
-  const renderFeaturedProduct = ({ item }) => (
+  const renderProduct = ({ item }) => (
     <ProductCard
       product={item}
       onPress={() => handleProductPress(item)}
-      style={[styles.featuredProduct, { backgroundColor: theme.colors.surface }]}
-      theme={theme}
+      style={styles.productCard}
     />
   );
 
-  const renderNewArrivalProduct = (item) => (
-    <ProductCard
-      key={`new-${item.id}`}
-      product={item}
-      onPress={() => handleProductPress(item)}
-      style={[styles.gridProduct, { backgroundColor: theme.colors.surface }]}
-      theme={theme}
-    />
-  );
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <LoadingWave color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.greeting, { color: theme.colors.subtext }]}>Welcome back!</Text>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Redeemer's Marketplace</Text>
-          </View>
-          <TouchableOpacity 
-            style={[styles.cartButton, { backgroundColor: theme.colors.surface }]}
-            onPress={() => navigation.navigate('Cart')}
-          >
-            <Ionicons name="cart-outline" size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity
+          style={[styles.searchBar, { backgroundColor: theme.colors.background }]}
+          onPress={handleSearchPress}
+        >
+          <Ionicons name="search-outline" size={20} color={theme.colors.subtext} />
+          <Text style={[styles.searchText, { color: theme.colors.subtext }]}>
+            Search products...
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
-          <Ionicons name="search-outline" size={20} color={theme.colors.subtext} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Search products..."
-            placeholderTextColor={theme.colors.subtext}
-          />
-        </View>
-
-        {/* Categories */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         <View style={styles.categoriesSection}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Categories</Text>
           <FlatList
@@ -134,39 +142,42 @@ const HomeScreen = ({ navigation }) => {
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.categoriesList, { backgroundColor: theme.colors.background }]}
+            contentContainerStyle={styles.categoriesList}
           />
         </View>
 
-        {/* Featured Products */}
-        <View style={styles.featuredSection}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Featured Products</Text>
-            <TouchableOpacity>
-              <Text style={[styles.seeAllButton, { color: theme.colors.primary }]}>See All</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Featured</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ProductList')}>
+              <Text style={[styles.seeAll, { color: theme.colors.primary }]}>See All</Text>
             </TouchableOpacity>
           </View>
           <FlatList
-            data={featuredProducts.slice(0, 2)}
-            renderItem={renderFeaturedProduct}
-            keyExtractor={(item) => `featured-${item.id}`}
+            data={featuredProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.featuredList, { backgroundColor: theme.colors.background }]}
+            contentContainerStyle={styles.productsList}
           />
         </View>
 
-        {/* New Arrivals */}
-        <View style={styles.newArrivalsSection}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>New Arrivals</Text>
-            <TouchableOpacity>
-              <Text style={[styles.seeAllButton, { color: theme.colors.primary }]}>See All</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ProductList')}>
+              <Text style={[styles.seeAll, { color: theme.colors.primary }]}>See All</Text>
             </TouchableOpacity>
           </View>
-          <View style={[styles.productsGrid, { backgroundColor: theme.colors.background }]}>
-            {featuredProducts.map(renderNewArrivalProduct)}
-          </View>
+          <FlatList
+            data={newArrivals}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.productsList}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -178,106 +189,77 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  greeting: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  cartButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchContainer: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    padding: 12,
     borderRadius: 8,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 16,
+  searchText: {
+    marginLeft: 8,
+    fontSize: 14,
   },
   categoriesSection: {
-    marginBottom: 24,
+    paddingVertical: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginLeft: 16,
-    marginBottom: 12,
-  },
-  categoriesList: {
-    paddingHorizontal: 10,
-  },
-  categoryCard: {
-    alignItems: 'center',
-    marginHorizontal: 8,
-    width: 80,
-    padding: 8,
-    borderRadius: 12,
-  },
-  categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  categoryName: {
-    fontSize: 12,
-    textAlign: 'center',
+  section: {
+    paddingVertical: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginRight: 16,
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
-  seeAllButton: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  seeAll: {
     fontSize: 14,
-    fontWeight: '500',
   },
-  featuredSection: {
-    marginBottom: 24,
-  },
-  featuredList: {
+  categoriesList: {
     paddingHorizontal: 16,
   },
-  featuredProduct: {
+  categoryCard: {
+    width: 80,
+    height: 80,
+    marginRight: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  categoryName: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  productsList: {
+    paddingHorizontal: 16,
+  },
+  productCard: {
+    width: 180,
     marginRight: 16,
-    width: 220,
-  },
-  newArrivalsSection: {
-    marginBottom: 24,
-  },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 8,
-  },
-  gridProduct: {
-    marginHorizontal: 8,
-    marginBottom: 16,
-    width: '45%',
   },
 });
 

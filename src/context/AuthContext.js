@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authAPI } from '../services/api/auth';
 
 const AuthContext = createContext({});
 
@@ -31,22 +32,25 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setIsLoading(true);
-      // TODO: Replace with actual API call
-      const response = {
-        token: 'dummy_token',
-        user: {
-          id: '1',
-          email,
-          name: 'Test User',
-        },
-      };
+      // Call the actual API
+      const response = await authAPI.login(email, password);
+      
+      if (response.success) {
+        // Store user data with role
+        const userData = {
+          ...response.user,
+          role: response.user.role || 'user', // Default to 'user' if no role specified
+        };
 
-      await AsyncStorage.setItem('userToken', response.token);
-      await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        await AsyncStorage.setItem('userToken', response.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
 
-      setUserToken(response.token);
-      setUserData(response.user);
-      return { success: true };
+        setUserToken(response.token);
+        setUserData(userData);
+        return { success: true };
+      } else {
+        return { success: false, error: response.error || 'Login failed' };
+      }
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, error: error.message };
@@ -58,21 +62,25 @@ export const AuthProvider = ({ children }) => {
   const signup = async (formData) => {
     try {
       setIsLoading(true);
-      // TODO: Replace with actual API call
-      const response = {
-        token: 'dummy_token',
-        user: {
-          id: '1',
-          ...formData,
-        },
-      };
+      // Call the actual API
+      const response = await authAPI.signup(formData);
+      
+      if (response.success) {
+        // Store user data with default role
+        const userData = {
+          ...response.user,
+          role: 'user', // New users always start as regular users
+        };
 
-      await AsyncStorage.setItem('userToken', response.token);
-      await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        await AsyncStorage.setItem('userToken', response.token);
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
 
-      setUserToken(response.token);
-      setUserData(response.user);
-      return { success: true };
+        setUserToken(response.token);
+        setUserData(userData);
+        return { success: true };
+      } else {
+        return { success: false, error: response.error || 'Signup failed' };
+      }
     } catch (error) {
       console.error('Signup error:', error);
       return { success: false, error: error.message };
@@ -84,12 +92,32 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userData');
+      
+      // Call the logout API
+      await authAPI.logout();
+
+      // Clear all app data
+      const keys = [
+        'userToken',
+        'userData',
+        'cartItems',
+        'wishlistItems',
+        'profileData',
+        'addresses',
+        'isDarkMode',
+        'recentSearches'
+      ];
+      
+      await Promise.all(keys.map(key => AsyncStorage.removeItem(key)));
+
+      // Reset state
       setUserToken(null);
       setUserData(null);
+
+      return { success: true };
     } catch (error) {
       console.error('Logout error:', error);
+      return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
     }
